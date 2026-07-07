@@ -1,0 +1,18 @@
+# @package _global_
+# PD expert training config for the wra_debug scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_debug
+
+defaults:
+  - /scenario/wra_debug
+  - /pd_training/defaults
+  - _self_
+
+training:
+  r_min: 0.7
+  batch_size: 8
+  alpha_dual: 0.05
+
+  violation_fraction_on_model_avg_rates_threshold: 0.001 # For backwards compatibility with previous experiments, but this is quite strict for the debug scenario, so we may want to relax it.
+  mean_violation_slack_on_model_avg_rates_threshold: 0.7 # = r_min For backwards compatibility with previous experiments, but this is quite strict for the debug scenario, so we may want to relax it.
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

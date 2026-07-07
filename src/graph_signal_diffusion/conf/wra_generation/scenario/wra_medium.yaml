@@ -1,0 +1,21 @@
+# @package _global_
+# WRA medium scenario: 200-link dense networks (\approx 20 pairs / km²)
+#
+# Full-power baseline guidance (run channel_analysis to update):
+#   mean_of_means ≈ 2.6,  global_10th_pct ≈ 0.34
+#   r_min = 0.8 bits/s/Hz is a reasonable constraint.
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium
+
+dataset:
+  num_networks: 128
+  n_links: 200
+  deployment_range: 3200.0  # metres
+
+
+channel:
+  max_deployment_attempts: 1000

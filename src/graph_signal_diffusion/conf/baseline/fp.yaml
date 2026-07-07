@@ -1,0 +1,36 @@
+# @package baseline
+name: full_power_wra
+_target_: graph_signal_diffusion.baselines.wireless_resource_allocation.full_power.FullPowerBaseline
+needs_training: false  # No training required — constant full-power allocation
+
+# ── Device ───────────────────────────────────────────────────────────
+device: cuda
+
+# Number of samples per network drawn by grouped evaluation dataloaders.
+# compare_baselines_wra.yaml can override this to align all baselines.
+n_samples: 1
+
+# ── Logging ──────────────────────────────────────────────────────────
+log_every_n_batches: 10  # Print progress every N batches (0 = disable)
+
+
+evaluation:
+  structural_metrics: false       # Compute cross-stock & temporal structure diagnostics
+
+# ── Notes ────────────────────────────────────────────────────────────
+# Full-Power is the WRA analogue of the Zero-Forecast baseline:
+# every transmitter is assigned maximum power P_max at every slot.
+# In the normalised space used by the dataset (y = power/P_max - 0.5),
+# this corresponds to the constant value +0.5 for every node.
+#
+# This serves as a simple upper-bound on transmit power and a
+# natural lower-bound sanity check on interference-aware objectives
+# (ergodic sum-rate, QoS satisfaction rate).  WMMSE and the diffusion
+# model should both outperform full-power on sum-rate because they
+# trade off inter-user interference.
+#
+# Usage:
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       --config-name evaluate_wra \
+#       baseline=fp \
+#       dataset.datasets='["<scenario>/pdc_npz_<hash>"]'

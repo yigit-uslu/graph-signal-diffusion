@@ -1,0 +1,13 @@
+# @package baseline
+name: wmmse
+_target_: graph_signal_diffusion.baselines.wireless_resource_allocation.wmmse.WMMSEBaseline
+needs_training: false  # Solved online per network at evaluation time
+
+device: cuda
+n_samples: 1
+num_wmmse_iters: 100
+log_every_n_batches: 10
+
+# Evaluation-time settings (used by evaluate())
+evaluation:
+  structural_metrics: false       # Compute cross-stock & temporal structure diagnostics

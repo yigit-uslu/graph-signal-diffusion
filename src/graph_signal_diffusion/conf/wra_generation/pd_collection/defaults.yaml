@@ -1,0 +1,58 @@
+# @package _global_
+# Default parameters for converting PD expert trajectories into raw WRA diffusion datasets.
+# Compose this into per-scenario pd_collection configs via:
+#   defaults:
+#     - /pd_collection/defaults
+#
+# Use with the Hydra CLI:
+#   python -m graph_signal_diffusion.cli.wra.build_diffusion_dataset \
+#     --config-name=pd_collection/wra_medium \
+#     input_dir=/path/to/pd_run
+#
+# These settings control how samples are selected from a completed PD training run
+# to form the supervision dataset for diffusion training.  They are intentionally
+# separate from pd_training/ because a single trained model can yield multiple
+# collection variants, and pd_collection_key hashes over pd_run_key + these params,
+# correctly propagating upstream changes.
+
+# Runtime input (required). Leave unset in committed configs and provide on CLI:
+#   input_dir=/path/to/pd_run
+input_dir: ???
+
+collection:
+  sample_source: npz              # npz | primal_history
+  target_samples_per_network: 200 # Max samples to keep per network (BOTH sources apply this)
+
+  # Parameters below ONLY apply when sample_source: primal_history.
+  # They are completely ignored when sample_source is npz.
+  # They are also excluded from pd_collection_key hash when sample_source is npz,
+  # meaning two collection runs (npz vs primal_history) will have different keys even
+  # if only sample_source differs.
+  primal_history:
+    window_size: 1000
+    refine_feasible_subset: true     # Apply greedy feasibility + diversity refinement. If false, all parameters below are ignored
+    refine_objective: min_rate        # Refinement objective: min_rate | p1_rate | p5_rate | composite. Only used when refine_feasible_subset: true
+    subset_feasibility_tolerance: 0.0 # Slack on r_min: enforce avg_rate >= (r_min - tolerance). Only used when refine_feasible_subset: true
+    subset_bottleneck_nodes: 5        # Number of worst receivers used as diversity feature space. Only used when refine_feasible_subset: true
+
+output:
+  root: data/wra       # Root directory for raw WRA datasets; output goes to root/{scenario}/{pd_collection_key}/raw/
+  raw_wra_dir: null    # Explicit raw dataset dir (bypasses root/{scenario}/{pd_collection_key}/raw/ layout)
+  force: false         # Overwrite existing files in the output directory
+  h_instantaneous:
+    enabled: true       # Generate per-network H_instantaneous files alongside the raw dataset
+    num_timesteps: null  # null = read from training config (scenario.num_timesteps, default 200)
+    dtype: float32       # Stored dtype: float16 | float32 | float64
+
+# Content-addressed key uniquely identifying this collection configuration.
+# Hashes over the upstream pd_run_key plus collection parameters.
+# When sample_source is npz, primal_history-specific params are excluded from the hash.
+# NOTE: requires the wra_pd_collection_key custom resolver to be registered in the application.
+pd_collection_key: ${wra_pd_collection_key:${pd_run_key},${collection.sample_source},${collection.target_samples_per_network},${collection.primal_history.window_size},${collection.primal_history.refine_feasible_subset},${collection.primal_history.refine_objective},${collection.primal_history.subset_feasibility_tolerance},${collection.primal_history.subset_bottleneck_nodes}}
+
+hydra:
+  run:
+    dir: outputs/${name}/${pd_collection_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${pd_collection_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

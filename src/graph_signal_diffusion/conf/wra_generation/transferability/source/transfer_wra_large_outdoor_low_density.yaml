@@ -1,0 +1,12 @@
+name: transfer_wra_large_outdoor_low_density
+
+# Scenario used to train the source diffusion checkpoint.
+source_scenario_name: wra_large_outdoor_low_density
+
+# Required: diffusion checkpoint path to transfer from.
+checkpoint_path: null
+
+# Optional override. When null, resolved from source checkpoint config:
+# dataset.model_cond_channels.
+model_cond_channels: null
+

@@ -1,0 +1,134 @@
+# @package model
+defaults:
+  - ugnn_sp500_v3
+  - _self_
+
+# UGNN with learned 3-level [1,2,2] downsampling for stock price forecasting on SP500-cleaned.
+#
+# Architecture is functionally identical to WRA ARM K (neat-chupacabra-681) modulo
+# temporal processing.  ARM K validated that gamma=[1,2,2] + 3-layer bottleneck +
+# linear temperature anneal (ratio=0.90) produces the best composite scores across
+# the DS4 ablation study.
+#
+# Inherits from ugnn_sp500_v3.yaml:
+#   - Per-block temporal mixer (GNN blocks): kernel=3, dilation=2, causal
+#   - Time-varying conditioning encoder: T_cond -> T_out learned projection
+#
+# Node counts (SP500-cleaned, N=468):
+#   Level 0 (gamma=1): GNN@468, no pool
+#   Level 1 (gamma=2): GNN@468, pool -> 234
+#   Level 2 (gamma=2): GNN@234, pool -> 117
+#   Bottleneck: 3-layer GNN@117 (25% of graph, cheap but heavy processing)
+#
+# Temporal mixer parameter selection (per-block schedule):
+#   The temporal mixer's receptive field (RF) should cover the full output
+#   temporal dimension T to enable global temporal reasoning.
+#   RF = 1 + (kernel_size - 1) * dilation.
+#   Rule of thumb for per-block: dilation = ceil((T - 1) / (kernel_size - 1)).
+#   With T=5 (future_window) and kernel_size=3: dilation = ceil(4/2) = 2, RF = 5.
+#   For per-layer schedule (interleaved with GNN layers), stacking compounds the
+#   RF, so smaller dilations suffice: e.g., [1, 1] with kernel=3 gives RF_total=5.
+name: ugnn_sp500_v3_ds4
+
+config:
+  # 3 encoder levels (matching ARM K's [1,2,2] architecture).
+  channel_multipliers: [1, 1, 1]
+
+  gnn_config:
+    K: 2
+    num_layers: 2
+    norm_type: 'layer'
+    dropout: 0.05
+    use_strided_conv: true
+    strided_power_mode: 'a_plus_i'
+
+    pointwise_sparse_mode: auto
+    pointwise_sparse_threshold: 0.75
+
+    # Per-block temporal mixer for the main signal (T = future_window = 5).
+    # Inherited from ugnn_sp500_v3; repeated here for clarity.
+    #
+    # Per-block applies a single temporal Conv1d after all GNN layers in each
+    # encoder/decoder block.  With kernel_size=3 and dilation=2 the receptive
+    # field is RF = 1 + (3-1)*2 = 5, covering the full T=5 output window.
+    #
+    # Choosing kernel_size and dilation:
+    #   per-block  — one mixer, must cover T in one pass.
+    #                dilation = ceil((T-1) / (kernel_size-1)).
+    #                T=5, K=3 -> dilation=2.  T=10, K=3 -> dilation=5 (or K=5, d=2).
+    #   per-layer  — stacked mixers compound the RF.
+    #                RF_total = 1 + sum_i((K-1)*d_i).
+    #                Use small dilations [1,1] or growing [1,2]; stacking covers T.
+    temporal_mixer:
+      enabled: true
+      schedule: per_block
+      kernel_size: 3
+      causal: true
+      use_pointwise: false
+      dilations: [2]
+
+  pooling_config:
+    # -------------------------------------------------------------------------
+    # Topology + neighborhood aggregation
+    # -------------------------------------------------------------------------
+    # 3-level architecture: gamma=[1,2,2].
+    # Level 0 (gamma=1): full-resolution GNN, no pooling.
+    # Level 1 (gamma=2): GNN at full resolution, then pool 2x.
+    # Level 2 (gamma=2): GNN at half resolution, then pool 2x.
+    gamma: [1, 2, 2]
+    pool_K: 0
+    selection_method: 'learned'
+    neighborhood_pooling: null
+    neighborhood_include_self: true
+    neighborhood_max_dense_gb: 12.0
+    selector_skip_gamma1_levels: true
+
+    # -------------------------------------------------------------------------
+    # V3 NodeSelector controls (identical to WRA ARM K)
+    # -------------------------------------------------------------------------
+    selector_version: 'v3'
+    min_retained_nodes: 1
+    selector_temporal_reduce: 'mean'
+    selector_use_cond_fusion: true
+    selector_cond_fusion_mode: 'add'
+    selector_cond_fusion_heads: 4
+    selector_cond_fusion_dropout: 0.0
+    selector_time_emb_dim: 128
+    selector_exploration_noise: 0.0
+    selector_exploration_noise_min: 0.0
+    selector_exploration_noise_schedule: 'constant'
+    selector_exploration_noise_anneal_steps: 0
+    selector_exploration_noise_warmup_steps: 0
+    selector_collect_heavy_diagnostics: false
+
+    # Entropy regularization: disabled (ARM K finding).
+    # STE gradients from diffusion loss alone drive selector specialization
+    # when using slow linear temperature anneal (anneal_ratio=0.90).
+    entropy_reg_weight: 0.0
+    entropy_reg_depth_scale: 1.0
+
+    # -------------------------------------------------------------------------
+    # selector_kwargs forwarded to NodeSelector via StridedGraphMaxPool.
+    # -------------------------------------------------------------------------
+    selector_kwargs:
+      use_pooling_gnn: false
+      hidden_channels: 32
+      selection_mode: 'ste'
+      temperature: 1.0
+      temperature_schedule: 'linear'
+      temperature_min: 0.20
+      temperature_warmup_steps: 0
+      temperature_anneal_steps: 0
+      collect_sampling_probe: false
+
+    # NodeSelector packed score path.
+    selector_packed_score_mode: 'auto'
+    selector_packed_score_threshold: 0.75
+
+  # 3-layer bottleneck (ARM K finding).
+  # Heavy processing at the coarsest resolution (117 nodes for SP500-cleaned)
+  # is cheap in compute but provides global cross-stock reasoning capacity,
+  # following the image U-Net principle of concentrating compute in the bottleneck.
+  num_bottleneck_layers: 3
+
+  compact_skip_cache: true

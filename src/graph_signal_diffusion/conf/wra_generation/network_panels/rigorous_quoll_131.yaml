@@ -1,0 +1,90 @@
+# @package _global_
+# 5-panel "WRA network anatomy" figure for the rigorous-quoll-131 experiment
+# (ugnn_wra_v3_ds8_norm_act_head, medium-large outdoor, all-density @ single
+# r_min=0.6).  Sibling of network_panels/sophisticated_oarfish_9.yaml.
+#
+# NOTE: these panels visualize the PD-EXPERT data (deployment, channel graph,
+# allocations, ergodic rates), which the CLI resolves purely from (density, r_min)
+# over the shared `medium-large_outdoor_<density>_density` scenario — independent of
+# the model/checkpoint/dataset. So at a given (density, r_min) the figures match
+# sophisticated-oarfish-9's; only the output dir + experiment label differ. This arm
+# is trained at a SINGLE fixed r_min=0.6 (it did not sweep r_min), so keep r_min=0.6.
+#
+# Override any field on the CLI, e.g.:
+#   density=mid network_id=3 sample_selection=last zoom.n_links=20
+defaults:
+  - _self_
+
+experiment_name: rigorous-quoll-131
+
+# ── Which network / scenario to render ──
+density: low            # ultra-low | low | mid | high
+network_id: 0           # 0 .. 31
+r_min: 0.6              # this arm's single training r_min (do not sweep)
+
+# ── Allocation sample to display in panels (iv)/(v) ──
+#   best : PD sample with the largest fraction of RXs meeting r_min
+#   last : final collected sample (max source step)
+#   mean : per-link mean over all collected samples
+#   <int>: explicit sample index (0 .. num_samples-1)
+sample_selection: best
+
+# ── Ergodic-rate estimation (panel v) ──
+num_timesteps: 200      # fast-fading realizations averaged for the ergodic rate
+
+# ── Node-index labels (master switch) ──
+# false strips ALL node indices from every figure (full + both zooms).
+show_node_labels: false
+
+# ── PyG interference-graph construction (matches the diffusion dataset) ──
+graph:
+  top_k: 10
+  min_degree: 1
+  normalize_method: log1p
+
+# ── TX-RX deployment panel (i) ──
+# A transparent disk is drawn around each transmitter so the interference footprint is
+# legible from the deployment alone (overlaps / RXs inside a disk = strong coupling).
+# Its radius is a multiple of the deployment config's `max_tx_rx_distance` (the maximum
+# TX-RX pairing distance, 100 m here). Default multiplier 2 => 200 m: two TXs within 2x
+# the max link length can have near-colliding RXs (strong mutual interference).
+# `interference_radius_m` is only a fallback if the max separation can't be read.
+deployment:
+  interference_radius_multiplier: 2.0
+  interference_radius_m: 200.0
+  interference_disk_alpha: 0.10
+
+# ── Zoomed-in views over a small neighbourhood (labels on) ──
+#   mode=subgraph : induced subgraph — only the N selected nodes and the edges
+#                   whose BOTH endpoints are selected (drops cross-boundary edges).
+#   mode=camera   : camera-magnify — render the full network, crop the viewport to
+#                   the same window; cross-boundary edges trail off the panel.
+#   mode=both     : produce both figures (shared crop window for comparison).
+zoom:
+  enabled: true
+  mode: both                    # subgraph | camera | both
+  focus: highest_interference   # highest_interference | <int RX index> | [x, y]
+  n_links: 15                   # nearest links defining the crop (~15-20 nodes shown)
+  label_nodes: true
+
+# ── Realizations vs stochastic time-sharing figure ──
+# Companion figure to panels (iv)/(v): top row = several PD power-allocation vectors,
+# bottom row = the ergodic rate each yields IF held constant; last column = the mean
+# allocation E[p] and the ergodic rate of the stochastic TIME-SHARING policy (average
+# over all collected allocations of their individual ergodic rates).
+# When zoom.mode is camera|both, a camera-zoomed companion
+# (power_allocation_realizations_zoom_camera) cropped to the same window is also written.
+realizations:
+  enabled: true
+  n_show: 3                     # number of individual allocation realizations to show
+  num_timesteps: 100            # fast-fading steps per ergodic-rate estimate
+
+# ── Output (under the rigorous-quoll-131 experiment dir, per <density>_net<id>_r<rmin>) ──
+output:
+  base_dir: outputs/wireless_resource_allocation-wra/ugnn_wra_v3_ds8_norm_act_head-ddim_wra-gdm_wra_medium-large_outdoor_all_density/rigorous-quoll-131/network_panels
+
+# Keep Hydra's own bookkeeping out of the figure directory.
+hydra:
+  output_subdir: null
+  run:
+    dir: outputs/_hydra_runs/visualize_network_panels/${now:%Y-%m-%d_%H-%M-%S}

@@ -1,0 +1,48 @@
+# @package dataset
+
+name: sp100
+batch_size: 32 # training batch size
+batch_size_val: 16
+num_workers: 8
+# root: ${hydra:runtime.cwd}/data
+# root: src/graph_signal_diffusion/datasets/sp100
+root: ${hydra:runtime.cwd}/data/sp100
+
+pin_memory: true
+persistent_workers: true
+drop_last: false # true
+
+# "No if/elif": point directly to the dataset builder / datamodule class
+_target_: graph_signal_diffusion.datasets.sp100.datamodule.SP100Builder
+
+# kwargs: {
+#### SP100 specific parameters ####
+past_window: 20
+future_window: 10
+target_column_name: "DailyLogReturn"  # Use log returns instead of normalized close prices
+temporal_correlation_graph: false
+corr_threshold: 0.7
+pool_ratio: 0.5
+# }
+
+
+#### Other Dataset/dataloader options ####
+dataset_split_strategy: "chronological"  # "random" or "chronological"
+train_dataset_fraction: 0.8  # fraction of data used for training in chronological split
+x_batch_size: 1  # multiplier for batch size for training set (to simulate larger batch sizes for training)
+
+# ← NEW: Normalization parameters
+# NOTE: Dataset normalize is DISABLED because raw CSV DailyLogReturn is already pre-scaled
+# (DailyLogReturn = raw_log_return / per_stock_std, giving std ≈ 1).
+# De-scaling is handled in task evaluation using stored scale factors.
+normalize: false  # Disabled - data is already scaled in raw CSV
+normalize_method: standardize  # or "minmax", "none"
+normalize_dim: [0, 1]  # Normalize over batch (nodes) and time dimensions
+
+# Add model-relevant parameters
+model_in_timesteps: ${.future_window}  # number of input (target) timesteps for the model
+model_obs_timesteps: ${.past_window}  # number of observed (historical) timesteps for the model
+model_out_timesteps: ${.future_window}  # number of output (pred) timesteps for the model
+model_cond_channels: 8 # number of features of the past observations used as conditioning input
+
+# kwargs: {}

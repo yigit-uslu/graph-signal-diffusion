@@ -1,0 +1,29 @@
+# @package _global_
+defaults:
+  - dataset: sp100
+  - task: stock_price_forecasting
+  - baseline@baselines.diffusion: diffusion
+  - baseline@baselines.grw: grw
+  - wandb: baseline_eval
+  - _self_
+
+baselines_to_compare: [diffusion, grw]
+seed: 0
+
+# Per-split batch limits for evaluation (null = use all batches)
+eval_splits:
+  train-val: 10
+  val: null
+  test: null
+
+# Visualisation options
+viz:
+  nll_log_x: true   # logarithmic x-axis for NLL histograms
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    dir: outputs/${task.name}-${dataset.name}/comparison/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${task.name}-${dataset.name}/comparison/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

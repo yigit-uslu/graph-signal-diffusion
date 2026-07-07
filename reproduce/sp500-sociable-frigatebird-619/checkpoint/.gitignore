@@ -1,0 +1,5 @@
+# The ep4500 checkpoint is intentionally bundled with this reproduction package
+# via REGULAR git (it is only 19MB and frozen). Re-include it despite the
+# project-wide `*.pt` ignore rule in the root .gitignore. NOT git-LFS — this is a
+# plain git blob, consistent with retiring the LFS dependency.
+!best_model_epoch_4500.pt

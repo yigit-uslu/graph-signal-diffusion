@@ -1,0 +1,18 @@
+# @package _global_
+# Channel analysis config for the wra_medium-large_outdoor_high_density scenario.
+# Composes the shared scenario definition and adds analysis-only controls.
+# Use with: python scripts/configure_wra_dataset.py --config-name=channel_analysis/wra_medium-large_outdoor_high_density
+
+defaults:
+  - /scenario/wra_medium-large_outdoor_high_density
+  - _self_
+
+# Number of example networks to visualise and log
+num_examples: 2
+
+hydra:
+  run:
+    dir: outputs/${name}/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

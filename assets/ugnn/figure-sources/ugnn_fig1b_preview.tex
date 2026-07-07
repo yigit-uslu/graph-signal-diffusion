@@ -1,0 +1,10 @@
+% Standalone preview wrapper for Fig 1b (ugnn_fig1b.tex) -- Fig 1 + graph insets.
+% Local preview only.  Does NOT touch ugnn_architecture_full.{tex,pdf} or ugnn_fig1.tex.
+%   Compile (with caption):  pdflatex ugnn_fig1b_preview.tex
+%   Compile (no caption):    pdflatex "\def\nocaption{}\input{ugnn_fig1b_preview}"
+\documentclass[tikz,border=12pt,class=extarticle,17pt]{standalone}
+\usepackage{amsmath}
+\input{_ugnn_preamble}
+\begin{document}
+\input{ugnn_fig1b}
+\end{document}

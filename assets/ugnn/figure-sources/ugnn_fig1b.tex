@@ -1,0 +1,391 @@
+% ugnn_fig1b.tex -- Fig 1b body : Fig 1 + representative graph-signal insets.
+% Variant of ugnn_fig1.tex (NOT a replacement).  Adds two columns of one FIXED
+% jittered grid graph, aligned with the depth bands: LEFT = encoder down-sampling
+% (top->bottom, fewer active nodes), RIGHT = decoder up-sampling (bottom->top).
+% Drawing only: no documentclass/begin document. \input AFTER _ugnn_preamble.tex.
+% begingroup..endgroup keeps the generic layout defs (\sy,\Xmax,...) local when embedded.
+\begingroup
+\input{_ugnn_graph_macros}   % representative graph-signal insets (Fig 1b only)
+% ===== tunable layout parameters =====================================
+\def\Depth{3}
+\pgfmathtruncatemacro{\Dp}{\Depth+1}
+\def\sy{5.7}          % vertical step per depth level (raised to lengthen the C_bZ arrows)
+\def\Aoff{2.9}        % down/up (sampling) axis gap below the upper encoder (raised 0.5)
+\def\Xmax{9.0}       % decoder column x (encoder column at x=0)
+\pgfmathsetmacro{\Xc}{\Xmax/2}
+\def\blkw{2.2}        % width (cm) of the Phi/Pi rectangular blocks (was 2.8; lower to slim them)
+% right-margin coordinates anchored to the decoder column so the whole right half
+% tracks \Xmax (one knob: lower \Xmax -> shorter skips + narrower figure):
+\pgfmathsetmacro{\busRx}{\Xmax+2.2}     % decoder bus riser + bottom-bus right end
+\pgfmathsetmacro{\bandR}{\Xmax+2.6}     % depth-band right edge
+\pgfmathsetmacro{\modRx}{\Xmax+4.6}     % module-frame right edge
+\pgfmathsetmacro{\poutx}{\Xmax+3.6}     % read-out \Piout x
+\pgfmathsetmacro{\epsx}{\Xmax+6.4}      % raw \bbeps output x
+\pgfmathsetmacro{\figCx}{(\Xmax-5.9)/2} % module-frame center x (frame label + caption)
+\def\railY{1.4}       % conditioning rail height (k,u now sit at the bottom of the input stack)
+\def\Dpx{-6.0}        % D-nesting pipe x (pulled in toward the selectors)
+\def\Psix{-2.8}       % selector column x (brought close to the encoder GNN+fusion)
+\def\Zoff{0.45}      % selector stack half-offset: Z at lower-east (skip level), cond at upper-west
+\def\Cbusx{-4.4}      % conditioning trunk x (to the LEFT of the selectors)
+\pgfmathsetmacro{\encrib}{\Cbusx+\blkw/2} % cond-rib length: trunk -> encoder Pi.west (tracks \blkw)
+% ---- derived vertical levels (single source of truth) ---------------
+\pgfmathsetmacro{\Ltwo}{-\sy}            % enc-2 / dpipe-2 row
+\pgfmathsetmacro{\Lthree}{-2*\sy}        % enc-3 / dpipe-3 row
+\pgfmathsetmacro{\Lfour}{-3*\sy}         % dpipe-4 row
+\pgfmathsetmacro{\AxA}{-\Aoff}           % down/up/mul axis 2
+\pgfmathsetmacro{\AxB}{-\sy-\Aoff}       % down/up/mul axis 3
+\pgfmathsetmacro{\AxC}{-2*\sy-\Aoff}     % down/up/mul axis 4
+\pgfmathsetmacro{\PsiA}{-0.75+\Zoff}        % selector psi-2 centre (raised; Z straight from skipdot-1)
+\pgfmathsetmacro{\PsiB}{\Ltwo-0.75+\Zoff}   % selector psi-3 centre (raised; Z straight from skipdot-2)
+\pgfmathsetmacro{\PsiC}{\Lthree-0.75+\Zoff} % selector psi-4 centre (raised; Z straight from skipdot-3)
+\pgfmathsetmacro{\Ctrunkbot}{\PsiC+0.2}  % conditioning trunk bottom (just below psi-4 cond entry)
+\pgfmathsetmacro{\SkB}{\Ltwo-0.75}       % skip + selector-input fork, level 2 (level 1 = -0.75)
+\pgfmathsetmacro{\SkC}{\Lthree-0.75}     % skip + selector-input fork, level 3
+\pgfmathsetmacro{\boty}{\AxC-2.6}        % bottleneck y, lowered (Fig 1b): deepens the bottleneck so the
+                                         % depth-4 graph (\gyD=\boty) drops -> wider depth-3<->4 inset gap
+\pgfmathsetmacro{\bnfeed}{\boty-1.4}     % bottom bus level (lowered for more clearance below the bottleneck)
+\pgfmathsetmacro{\botband}{2*\boty-\AxC} % bottom band edge = symmetric about \boty -> band 4 extends DOWN
+                                         % (taller, ~uniform with bands 1-3) and the bottleneck stays centred
+\pgfmathsetmacro{\capy}{\botband-3.8}    % caption y (pushed further below the module frame)
+
+% ---- compact GNN block labels (operator + parametrising D_b) --------
+\newcommand{\enclbl}[1]{$\PhiEnc{#1}$}
+\newcommand{\declbl}[1]{$\PhiDec{#1}$}
+\newcommand{\bnlbl}{$\PhiBn$}
+
+\begin{tikzpicture}[
+  >={Stealth[length=2.6mm]},
+  rounded corners=2pt,
+  gnnbox/.style = {draw, very thick, rounded corners=2pt, align=center,
+                   minimum width=\blkw cm, minimum height=1.0cm, inner sep=2pt,
+                   font=\normalsize, fill=gnncol},
+  bnbox/.style  = {draw, very thick, rounded corners=2pt, align=center,
+                   minimum width=\blkw cm, minimum height=1.0cm, inner sep=2pt,
+                   font=\normalsize, fill=gnncol!70!olive},
+  pibar/.style  = {draw, thick, rounded corners=1.5pt, align=center,
+                   minimum width=\blkw cm, minimum height=0.65cm, inner sep=1pt,
+                   font=\normalsize, fill=projcol},
+  pibarV/.style = {draw, thick, rounded corners=1.5pt, align=center,
+                   minimum width=1.0cm, minimum height=1.0cm, inner sep=1pt,
+                   font=\normalsize, fill=projcol},
+  io/.style     = {draw, thick, rounded corners=2pt, align=center,
+                   minimum height=0.8cm, inner sep=4pt, font=\small, fill=projcol},
+  src/.style    = {font=\normalsize},
+  samp/.style   = {draw, thick, minimum size=0.7cm, inner sep=1pt,
+                   font=\normalsize, fill=white},
+  psi/.style    = {draw, thick, rounded corners=2pt, align=center,
+                   minimum width=1.5cm, minimum height=1.6cm, inner sep=2pt,
+                   font=\normalsize, fill=selcol},
+  dbox/.style   = {draw, thick, rounded corners=2pt, align=center,
+                   minimum width=1.15cm, minimum height=0.7cm, inner sep=1pt,
+                   font=\small, fill=gray!12},
+  mul/.style    = {draw, thick, circle, inner sep=0pt, minimum size=0.55cm,
+                   font=\small, fill=white},
+  jct/.style    = {draw, thick, circle, inner sep=0pt, minimum size=0.5cm,
+                   fill=gray!25},
+  splitdot/.style = {circle, fill=black, inner sep=0pt, minimum size=1.5mm},
+  sig/.style    = {-{Stealth[length=2.6mm]}, very thick},
+  sigenc/.style = {sig, red!70!black},     % encoder main signal Z_b (matches the red encoder frames)
+  sigdec/.style = {sig, blue!70!black},    % decoder main signal Y_b (matches the blue decoder frames)
+  samparr/.style= {-{Stealth[length=2.2mm]}, thick},
+  dpa/.style    = {-{Stealth[length=2.0mm]}, thick, gray!55!black},
+  feat/.style   = {-{Stealth[length=2.0mm]}, thick, teal!55!black},
+  ctrl/.style   = {-{Stealth[length=2.0mm]}, thick, densely dashed, orange!80!black},
+  skip/.style   = {-{Stealth[length=2.0mm]}, thick, dashed, violet!80!black},
+  busln/.style  = {thick, densely dashed, black!60},
+  bustap/.style = {-{Stealth[length=1.6mm]}, thick, densely dashed, black!60},
+  elbl/.style   = {font=\small, inner sep=1.2pt, fill=white,
+                   fill opacity=0.85, text opacity=1},
+  clbl/.style   = {font=\small, inner sep=1pt},
+  % encoder / decoder block frames -- echo Fig. 2's red/blue panels (outline only,
+  % so the gray depth bands read through); see the annotation scope near the end.
+  encann/.style = {draw=red!70!black,  very thick, rounded corners=6pt, inner sep=8pt},
+  decann/.style = {draw=blue!70!black, very thick, rounded corners=6pt, inner sep=8pt},
+  annlbl/.style = {font=\small\itshape, inner sep=1.5pt, fill=white,
+                   fill opacity=0.9, text opacity=1},
+  % external module frame (the U-GNN boundary; raw I/O sits outside it)
+  modbox/.style = {draw=bandcol!80!black, very thick, rounded corners=12pt},
+]
+
+% =================== external module bounding box ====================
+% Surrounds the whole U-GNN (projections, conditioning bus, D-pipe, selectors,
+% encoder, decoder, bottleneck).  Raw I/O -- k, u, x_k, S on the left and eps on
+% the right -- stays OUTSIDE; the I/O arrows cross the frame.  Drawn first so the
+% blocks render on top of it.
+% top edge raised to 7.4 (Fig 1b): fills the white space above and aligns with the side-inset graph tops
+\draw[modbox] (-10.5,7.4) rectangle (\modRx,\botband);
+\node[font=\itshape, text=bandcol!80!black, fill=white, inner sep=2pt]
+     at (\figCx,7.4) {$\bbeps(\bbx_k,k;\bbS,\bbu)$};
+
+% =================== D-nesting pipe (far left) =======================
+\node[dbox] (dpipe-1) at (\Dpx, 0)       {$\bbD_1{=}\bbI$};
+\node[mul]  (mul-2)   at (\Dpx,\AxA)     {$\times$};
+\node[dbox] (dpipe-2) at (\Dpx,\Ltwo)    {$\bbD_2$};
+\node[mul]  (mul-3)   at (\Dpx,\AxB)     {$\times$};
+\node[dbox] (dpipe-3) at (\Dpx,\Lthree)  {$\bbD_3$};
+\node[mul]  (mul-4)   at (\Dpx,\AxC)     {$\times$};
+\node[dbox] (dpipe-4) at (\Dpx,\boty)    {$\bbD_4$};   % aligned with the bottleneck level
+\draw[dpa] (dpipe-1.south) -- (mul-2.north);
+\draw[dpa] (mul-2.south)   -- (dpipe-2.north);
+\draw[dpa] (dpipe-2.south) -- (mul-3.north);
+\draw[dpa] (mul-3.south)   -- (dpipe-3.north);
+\draw[dpa] (dpipe-3.south) -- (mul-4.north);
+\draw[dpa] (mul-4.south)   -- (dpipe-4.north);
+\node[align=right, font=\footnotesize\itshape, text=black!70, anchor=east] at (-6.8,\AxA)
+     {nested sampling\\$\bbD_b=\prod_{j\le b}\bbC_j$};
+
+% =================== selectors =======================================
+% tall + narrow, raised so the (straight) Z enters the LOWER-east at the skip-tap
+% level and the conditioning enters the UPPER-east.  Annotated as Psi_b then TopK.
+\node[psi] (psi-2) at (\Psix,\PsiA) {$\Psisel{1}$\\[-10pt]\rule{0.95cm}{0.3pt}\\[2pt]{\small$\mathrm{TopK}$}};
+\node[psi] (psi-3) at (\Psix,\PsiB) {$\Psisel{2}$\\[-10pt]\rule{0.95cm}{0.3pt}\\[2pt]{\small$\mathrm{TopK}$}};
+\node[psi] (psi-4) at (\Psix,\PsiC) {$\Psisel{3}$\\[-10pt]\rule{0.95cm}{0.3pt}\\[2pt]{\small$\mathrm{TopK}$}};
+
+% =================== encoder / decoder blocks (2-compartment) ========
+\foreach \b in {1,2,3}{
+  \pgfmathsetmacro{\ey}{-(\b-1)*\sy}
+  \node[gnnbox] (enc-\b) at (0,\ey) {\enclbl{\b}};
+  \node[pibar, anchor=south] (encpi-\b) at (enc-\b.north) {$\Piblk{\b}$};
+  \node[gnnbox] (dec-\b) at (\Xmax,\ey) {\declbl{\b}};
+  \node[pibar, anchor=north] (decpi-\b) at (dec-\b.south) {$\Piblk{\b}$};
+}
+\node[bnbox] (bn) at (\Xc,\boty) {\bnlbl};
+\node[pibarV, anchor=east] (bnpi) at (bn.west) {$\Piblk{\Dp}$};
+
+% =================== sampling blocks =================================
+\node[samp] (down-2) at (0,\AxA)  {$\downarrow$};
+\node[samp] (down-3) at (0,\AxB)  {$\downarrow$};
+\node[samp] (down-4) at (0,\AxC)  {$\downarrow$};
+\node[samp] (up-1) at (\Xmax,\AxA)  {$\uparrow$};
+\node[samp] (up-2) at (\Xmax,\AxB)  {$\uparrow$};
+\node[samp] (up-3) at (\Xmax,\AxC)  {$\uparrow$};
+
+% =================== left I/O column + read-out ======================
+% Raw inputs (sources at x=-11.6) feed their projections (x=-9.3); the column is the
+% left I/O interface, ordered top->bottom: x_k, S, then the conditioning k, u.
+\node[src] (xk)     at (-11.6,4.4) {$\bbx_k$};
+\node[io]  (pin)    at (-9.3,4.4)  {$\Piin$};
+\node[src] (Sin)    at (-11.6,3.2) {$\bbS$};
+\node[src] (kk)     at (-11.6,2.0) {$k$};
+\node[io]  (pistep) at (-9.3,2.0)  {$\Pistep$};
+\node[src] (uu)     at (-11.6,0.8) {$\bbu$};
+\node[io]  (picond) at (-9.3,0.8)  {$\Picond$};
+\node[jct] (merge)  at (-6.8,\railY) {\small$\|$};   % concatenation [U_0;K_0]
+% read-out: eps exits to the RIGHT, beyond the bus (= outside the frame)
+\node[io]  (pout) at (\poutx,4.4)  {$\Piout$};   % read-out: right margin, OUTSIDE the bands (mirrors Pi_0)
+\node[src] (eps)  at (\epsx,4.4)  {$\bbeps$};   % raw output: extended further outside the frame
+
+% =================== main signal : read-in + S broadcast =============
+\draw[sig] (xk.east) -- (pin.west);
+% x_k sits at the TOP now, so Z_0 leaves Pi_0 along the top and drops into the encoder
+% WITHOUT crossing the (now-lower) trunk -- no wire-jump needed.
+\draw[sigenc] (pin.east) -| (encpi-1.north) node[elbl,pos=0.84,right=2pt] (z0lbl) {$\bbZ_0$};
+% graph operator S: ONE global input, broadcast to every GNN block (no per-block
+% wiring) -- the box title and the per-block (S,D_b) labels carry the rest.
+\draw[sig] (Sin.east) -- (-8.9,3.2);
+\node[splitdot] (Sdot) at (-8.9,3.2) {};
+\node[font=\scriptsize\itshape, text=black!55, anchor=west] at (-8.72,3.2) {$\to$ all $\boldsymbol\Phi_b$};
+
+% =================== encoder forward + down-sampling =================
+% (the selector input Z_{b-1} now forks from the skip tap -- see skipdot-b below)
+\foreach \b/\p in {2/1, 3/2}{
+  \draw[sigenc]  (enc-\p.south) -- (down-\b.north) node[elbl,pos=0.65,right]{$\bbZ_{\p}$};
+  \draw[samparr] (down-\b.south) -- (encpi-\b.north) node[elbl,pos=0.55,right]{$\bbC_{\b}\bbZ_{\p}$};
+}
+% enc-3 -> bottleneck  (C_4Z_3 stays a straight inflow into Pi_4 from the LEFT/west;
+% the conditioning is routed under Pi_4 and up into its bottom instead)
+\draw[sigenc]  (enc-3.south) -- (down-4.north) node[elbl,pos=0.65,right]{$\bbZ_3$};
+\draw[samparr] (down-4.south) |- (bnpi.west)   node[elbl,pos=0.32,below]{$\bbC_4\bbZ_3$};
+
+% =================== decoder forward + up-sampling ===================
+\draw[sigdec]  (bn.east) -| (up-3.south) node[elbl,pos=0.25,below=2pt]{$\bbY_4$};
+\draw[samparr] (up-3.north) -- (decpi-3.south) node[elbl,pos=0.5,right]{$\bbC_4^{\top}\bbY_4$};
+\draw[sigdec]  (dec-3.north) -- (up-2.south) node[elbl,pos=0.55,left=2pt]{$\bbY_3$};
+\draw[samparr] (up-2.north) -- (decpi-2.south) node[elbl,pos=0.5,right]{$\bbC_3^{\top}\bbY_3$};
+\draw[sigdec]  (dec-2.north) -- (up-1.south) node[elbl,pos=0.55,left=2pt]{$\bbY_2$};
+\draw[samparr] (up-1.north) -- (decpi-1.south) node[elbl,pos=0.5,right]{$\bbC_2^{\top}\bbY_2$};
+\draw[sigdec]  (dec-1.north) |- (pout.west);  % up, then bend RIGHT into the read-out
+\node[elbl, anchor=east, xshift=-2pt, text=blue!70!black] at (dec-1.north |- z0lbl) {$\bbY_1$};  % Y_1 label shifted down to Z_0's height; explicit blue since a detached node doesn't inherit the sigdec path color
+\draw[sig]     (pout.east)   -- (eps.west);   % clean straight exit (no bus on the right now)
+
+% =================== skips: branch on the Z_b arrow, STRAIGHT ===============
+% Each skipdot is a single fork on the encoder-output arrow at enc-0.75 (= the
+% decoder-Pi height, so the skip is a straight horizontal): the skip leaves to
+% the RIGHT (to the matched decoder Pi) and the selector input leaves to the
+% LEFT (to Psi_{b+1}) -- both originate from this one point.
+\node[splitdot] (skipdot-1) at (0,-0.75) {};
+\node[splitdot] (skipdot-2) at (0,\SkB) {};
+\node[splitdot] (skipdot-3) at (0,\SkC) {};
+\draw[skip] (skipdot-1) -- (decpi-1.west) node[elbl,pos=0.5,above=2pt]{skip $\bbZ_1$};
+\draw[skip] (skipdot-2) -- (decpi-2.west) node[elbl,pos=0.5,above=2pt]{skip $\bbZ_2$};
+\draw[skip] (skipdot-3) -- (decpi-3.west) node[elbl,pos=0.5,above=2pt]{skip $\bbZ_3$};
+
+% =================== learned selection ===============================
+% Psi_b -> C_b  (into D-pipe multiply, and into the encoder down-block);
+% C_b reused (transposed) at the matched decoder up-block.
+% C_b leaves each selector at the bottom and forks on the sampling axis:
+\node[splitdot] (cfork-2) at (\Psix,\AxA) {};
+\node[splitdot] (cfork-3) at (\Psix,\AxB) {};
+\node[splitdot] (cfork-4) at (\Psix,\AxC) {};
+\foreach \b/\u in {2/1, 3/2, 4/3}{
+  \draw[ctrl] (psi-\b.south) -- (cfork-\b) node[clbl,pos=0.5,right]{$\bbC_{\b}$};
+  \draw[ctrl] (cfork-\b) -- (mul-\b.east);     % left  -> nested matrix multiplication (straight)
+  \draw[ctrl] (cfork-\b) -- (down-\b.west);    % right -> down-sampling (straight)
+  \draw[ctrl] (down-\b.east) -- (up-\u.west) node[clbl,pos=0.5,above]{$\bbC_{\b}^{\top}$};  % reuse C_b (transposed) at the matched decoder up-sampling
+}
+% Z_{b-1} feeding the selector -- forks from the skip point and enters as a
+% STRAIGHT horizontal arrow into the LOWER-east (the selector is raised so its
+% Z entry sits exactly at the skip-tap level; Z left + skip right are collinear).
+\draw[feat] (skipdot-1) -- ([yshift=-\Zoff cm]psi-2.east) node[elbl,pos=0.72,above]{$\bbZ_1$};
+\draw[feat] (skipdot-2) -- ([yshift=-\Zoff cm]psi-3.east) node[elbl,pos=0.72,above]{$\bbZ_2$};
+\draw[feat] (skipdot-3) -- ([yshift=-\Zoff cm]psi-4.east) node[elbl,pos=0.72,above]{$\bbZ_3$};
+
+% =================== conditioning bus ================================
+\draw[sig]    (kk.east) -- (pistep.west);
+\draw[sig]    (uu.east) -- (picond.west);
+\draw[bustap] (pistep.east) -| (merge.north) node[elbl,font=\footnotesize,pos=0.3]{$\bbK_0$};
+\draw[bustap] (picond.east) -| (merge.south) node[elbl,font=\footnotesize,pos=0.3]{$\bbU_0$};
+\draw[busln]  (merge.east) -- (\Cbusx,\railY);   % short top rail: merge -> trunk only
+\node[font=\footnotesize, text=black!65, anchor=west] at ($(merge.east)+(0.15,0.32)$)
+     {$\UK$ ($\times\,\bbD_b$) to every $\Piblk{b}$, $\Psisel{b}$};
+% conditioning trunk (x=\Cbusx): feeds the encoder Pi + selectors from the WEST, then
+% continues DOWN to the bottom and runs RIGHT as ONE continuous bottom bus.  Off it a short
+% tap rises to the bottleneck, and a SINGLE riser rises on the decoder's east side, tapping
+% each decoder Pi from below.
+\draw[busln] (\Cbusx,\railY)  -- (\Cbusx,\bnfeed);                    % trunk: rail -> bottom
+\draw[busln] (\Cbusx,\bnfeed) -- (\busRx,\bnfeed);                      % one continuous bottom bus
+\draw[bustap] let \p1=(bnpi.south)  in (\x1,\bnfeed) -- (\x1,\y1);    % tap up -> bottleneck Pi (from below)
+\draw[busln]  let \p1=(decpi-1.east) in (\busRx,\bnfeed) -- (\busRx,\y1); % SINGLE decoder riser up the east side
+\foreach \b in {1,2,3}{                                              % short taps -> each decoder Pi (from below)
+  \draw[bustap] let \p1=(decpi-\b.east) in (\busRx,\y1) -- (\x1,\y1);
+}
+\foreach \b in {1,2,3}{                  % -> encoder Pi  (rib right into Pi.west; xshift=\encrib cm = \Cbusx+\blkw/2)
+  \draw[bustap] ([xshift=\encrib cm]encpi-\b.west) -- (encpi-\b.west);
+}
+\foreach \b in {2,3,4}{                  % -> selector    (rib right into Psi.west, upper; -0.85cm = \Cbusx-psi.west)
+  \draw[bustap] ([xshift=-0.85cm,yshift=\Zoff cm]psi-\b.west) -- ([yshift=\Zoff cm]psi-\b.west);
+}
+
+% (Z_0 read-in is now drawn up in the read-in section: with x_k at the top, Z_0 no
+%  longer crosses the trunk, so no wire-jump is needed here.)
+
+% =================== background depth bands ==========================
+\begin{scope}[on background layer]
+  \pgfmathsetmacro{\bandL}{-7.1}
+  % \bandR now defined up top (\Xmax+2.6); the bands track the decoder column
+  \fill[bandcol!8]  (\bandL, 2.9)  rectangle (\bandR,\AxA);
+  \fill[bandcol!18] (\bandL,\AxA)  rectangle (\bandR,\AxB);
+  \fill[bandcol!28] (\bandL,\AxB)  rectangle (\bandR,\AxC);
+  \fill[bandcol!38] (\bandL,\AxC)  rectangle (\bandR,\botband);
+  % (selector + encoder conditioning now arrive from the central trunk on the
+  %  main layer -- see the conditioning-bus section; nothing to draw behind here.)
+\end{scope}
+
+% =================== encoder / decoder block annotations =============
+% Outline each block in Fig. 2's red (encoder) / blue (decoder) so the two figures
+% cross-reference; frames are background (gray bands read through), role labels on
+% the main layer.  The encoder frame ALSO encloses its selector Psi_{b+1} (which
+% scores the next down-sampling) -- matching Fig. 2's encoder panel.  The decoder
+% reuses C_b and has no selector, so its frame stays tight on phi+Pi.
+\begin{scope}[on background layer]
+  \foreach \b/\s in {1/2, 2/3, 3/4}{
+    \node[encann, fit={(encpi-\b)(enc-\b)(psi-\s)}] (encbox-\b) {};
+    \node[decann, fit={(dec-\b)(decpi-\b)}] (decbox-\b) {};
+  }
+\end{scope}
+\foreach \b in {1,2,3}{
+  \node[annlbl, text=red!70!black,  anchor=south west] at (encbox-\b.north east) {Encoder};
+  \node[annlbl, text=blue!70!black, anchor=south east] at (decbox-\b.north west) {Decoder};
+}
+
+% =================== representative graph-signal insets (Fig 1b) =====
+% Two columns of ONE fixed jittered grid graph, vertically aligned with the four
+% depth bands.  LEFT (encoder): top->bottom = progressive down-sampling -- the
+% active node set shrinks (nested, signal-adaptive TopK) and the node signal is
+% low-pass smoothed (growing receptive field).  RIGHT (decoder): bottom->top =
+% up-sampling (C_b reused transposed, so the same per-depth graphs restore upward).
+% Inactive nodes are de-highlighted (hollow = NaN/zero feature).
+\def\xL{-16.2}        % left  graph-column centre x
+\def\xR{19.2}         % right graph-column centre x
+\def\gpad{1.80}       % half-size of each graph backing panel
+\def\bandLedge{-7.1}  % depth-band left edge (matches the bands scope; \bandL is scoped there)
+\pgfmathsetmacro{\gyA}{0}\pgfmathsetmacro{\gyB}{\Ltwo}%
+\pgfmathsetmacro{\gyC}{\Lthree}\pgfmathsetmacro{\gyD}{\boty}%
+\pgfmathsetmacro{\gyX}{\gyA+\sy}% clean x_0 row: one step ABOVE depth 1 (left/encoder only)
+% ---- backing panels (echo each depth band's colour) on background layer ----
+\begin{scope}[on background layer]
+  \foreach \yy/\sh in {\gyA/8, \gyB/18, \gyC/28, \gyD/38}{
+    \fill[bandcol!\sh, rounded corners=6pt] (\xL-\gpad,\yy-\gpad) rectangle (\xL+\gpad,\yy+\gpad);
+    \fill[bandcol!\sh, rounded corners=6pt] (\xR-\gpad,\yy-\gpad) rectangle (\xR+\gpad,\yy+\gpad);
+  }
+  % clean x_0 (left) and clean-estimate xhat_0 (right) panels: pre/post-network, neutral grey
+  \fill[black!6, rounded corners=6pt] (\xL-\gpad,\gyX-\gpad) rectangle (\xL+\gpad,\gyX+\gpad);
+  \fill[black!6, rounded corners=6pt] (\xR-\gpad,\gyX-\gpad) rectangle (\xR+\gpad,\gyX+\gpad);
+\end{scope}
+% ---- faint dotted leaders : each graph <-> its depth band ------------
+\foreach \yy in {\gyA,\gyB,\gyC,\gyD}{
+  \draw[densely dotted, black!35, line width=0.6pt] (\xL+\gpad,\yy) -- (\bandLedge,\yy);
+  \draw[densely dotted, black!35, line width=0.6pt] (\xR-\gpad,\yy) -- (\bandR,\yy);
+}
+% ---- the graph snapshots (5th arg = display mode: 0 clean | 1 noisy enc | 2 xhat | 3 eps) ----
+\drawugraph{\xL}{\gyX}{1}{LX0}{0}%        clean x_0
+\drawugraph{\xL}{\gyA}{1}{LA}{1}%         depth 1 = x_k : LP(noisy), level 1 = full speckle
+\drawugraph{\xL}{\gyB}{2}{LB}{1}\drawugraph{\xL}{\gyC}{3}{LC}{1}\drawugraph{\xL}{\gyD}{4}{LD}{1}%  encoder: LP(noisy), variability shrinks with depth
+\drawugraph{\xR}{\gyX}{1}{RXh}{2}%        clean estimate xhat_0 (low-noise), aligned with clean x_0
+\drawugraph{\xR}{\gyA}{1}{RA}{3}%         decoder depth 1 = eps = x_k - xhat_0 (noise estimate)
+\drawugraph{\xR}{\gyB}{2}{RB}{3}\drawugraph{\xR}{\gyC}{3}{RC}{3}\drawugraph{\xR}{\gyD}{4}{RD}{3}%  decoder: up-sampled noise estimate (coarse -> fine going up)
+% ---- corruption (forward noising) : clean x_0 -> noisy x_k at depth 1 (left) ----
+\draw[-{Stealth[length=2.4mm]}, thick, black!75] (\xL,\gyX-\gpad-0.04) -- (\xL,\gyA+\gpad+0.04)
+     node[clbl,pos=0.5,fill=white,fill opacity=0.9,text opacity=1]{$q(\bbx_k\,|\,\bbx_0)$};
+% ---- reconstruction (denoise) : eps at depth 1 -> clean estimate xhat_0 (right) ----
+% reader-friendly proportionality form of the DDPM x0-estimator (denominator absorbed into propto;
+% the remaining schedule constant ghosted)
+\draw[-{Stealth[length=2.4mm]}, thick, black!75] (\xR,\gyA+\gpad+0.04) -- (\xR,\gyX-\gpad-0.04)
+     node[pos=0.5, fill=white, fill opacity=0.92, text opacity=1, inner sep=2pt, font=\small]
+       {$\widehat{\bbx}_{0}\;\propto\;\bbx_k-\textcolor{black!45}{\sqrt{1-\alphacumprod_k}}\;\bbeps$};
+% ---- down / up sampling arrows between stacked graphs (echo C_b edges) ----
+\foreach \yt/\yb/\bb in {\gyA/\gyB/2, \gyB/\gyC/3, \gyC/\gyD/4}{
+  \draw[ctrl] (\xL,\yt-\gpad-0.04) -- (\xL,\yb+\gpad+0.04)
+       node[clbl,pos=0.5,fill=white,fill opacity=0.88,text opacity=1]{$\downarrow\,\bbC_{\bb}$};
+  \draw[ctrl] (\xR,\yb+\gpad+0.04) -- (\xR,\yt-\gpad-0.04)
+       node[clbl,pos=0.5,fill=white,fill opacity=0.88,text opacity=1]{$\uparrow\,\bbC_{\bb}^{\top}$};
+}
+% ---- column headers + per-graph depth tags --------------------------
+% left header sits above the clean x_0 row (which is one step higher than depth 1)
+\node[font=\small\itshape, align=center, text=red!60!black]  at (\xL,\gyX+\gpad+1.0) {Down-sampling (encoding) path};
+\node[font=\small\itshape, align=center, text=blue!60!black] at (\xR,\gyX+\gpad+1.0) {Up-sampling (decoding) path};
+\foreach \yy/\bb in {\gyA/1,\gyB/2,\gyC/3,\gyD/4}{   % depth tags on the OUTER flank (clear of the central down/up arrows)
+  \node[font=\footnotesize\itshape, text=black!55, anchor=east] at (\xL-\gpad-0.14,\yy) {Depth \bb};
+  \node[font=\footnotesize\itshape, text=black!55, anchor=west] at (\xR+\gpad+0.14,\yy) {Depth \bb};
+}
+% clean x_0 / xhat_0 flank tags + notes that depth-1 is x_k (left) / eps (right)
+\node[font=\footnotesize\itshape, text=black!55, anchor=east] at (\xL-\gpad-0.14,\gyX) {Clean $\bbx_0$};
+\node[font=\scriptsize\itshape, text=black!45, anchor=east] at (\xL-\gpad-0.14,\gyA-0.46) {$\;{=}\,\bbx_k$ (Noisy)};
+\node[font=\footnotesize\itshape, text=black!55, anchor=west] at (\xR+\gpad+0.14,\gyX) {Est.\ $\widehat{\bbx}_0$};
+\node[font=\scriptsize\itshape, text=black!45, anchor=west] at (\xR+\gpad+0.14,\gyA-0.46) {${=}\,\bbeps$};
+
+% =================== caption (toggle via \ifshowcaption) ============
+\ifshowcaption
+\node[font=\small, align=center, text width=30cm] at (\figCx,\capy)
+  {\textbf{Fig.~1b.} U-GNN denoiser ($B{=}4$ depths, incl.\ bottleneck) as a vertical encoder--decoder U.
+   Each block stacks its per-block projection $\Piblk{b}$ (fuse with $\bbD_b\UK$)
+   on the GNN $\boldsymbol\Phi_b$. Selectors $\Psisel{b}$ produce $\bbC_{b+1}$ (reused
+   transposed by the matched decoder up-sampling); the left pipe nests
+   $\bbD_b=\prod_{j\le b}\bbC_j$. The graph shift operator $\bbS$ enters once and
+   parametrises every GNN block. The module frame $\boldsymbol\epsilon_{\boldsymbol\theta}$
+   leaves the raw I/O ($k,\bbu,\bbx_k,\bbS,\bbeps$) outside.
+   The \textcolor{red!70!black}{encoder} and \textcolor{blue!70!black}{decoder}
+   blocks (outlined) are detailed in Fig.~2.
+   \emph{Side insets:} one fixed grid graph, drawn at each depth.
+   The clean $\bbx_0$ is noised to the network input $\bbx_k$ (depth~1, $q(\bbx_k|\bbx_0)$).
+   Down the \textcolor{red!60!black}{left} (encoder), pooling ($\downarrow\bbC_b$,
+   signal-adaptive TopK) keys off the \emph{clean} signal while the displayed features
+   are a low-pass of the \emph{noisy} $\bbx_k$ (residual noise denoises with depth);
+   up the \textcolor{blue!60!black}{right} (decoder) the same selections up-sample the
+   \emph{noise estimate}, whose depth-1 output $\bbeps=\bbx_k-\widehat{\bbx}_0$ recovers
+   the clean estimate $\widehat{\bbx}_0$ (top, a lightly-corrupted $\bbx_0$).
+   Hollow nodes are inactive (pooled-out).};
+\fi
+
+\end{tikzpicture}
+\endgroup

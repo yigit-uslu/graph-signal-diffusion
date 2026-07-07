@@ -1,0 +1,59 @@
+# @package dataset
+name: wra
+batch_size: 32  # Training batch size
+batch_size_val: 8  # Validation batch size
+num_workers: 8
+root: ${hydra:runtime.cwd}/data/wra
+
+pin_memory: true
+persistent_workers: true
+drop_last: false
+
+# Dataset builder class
+_target_: graph_signal_diffusion.datasets.wra.datamodule.WRABuilder
+
+#### WRA-specific parameters ####
+
+# Sub-datasets to load. Specify content-addressed paths produced by build_diffusion_dataset.py.
+# The scenario component is the training config name with the "wra_" prefix stripped, e.g.:
+#   wra_debug scenario  → datasets: ["debug/pdc_npz_abc123def456"]
+#   wra_small scenario  → datasets: ["small/pdc_npz_abc123def456"]
+datasets: []
+
+# Split strategy: each sub-dataset independently splits by network ID
+train_fraction: 0.75  # First 3/4 of networks in each sub-dataset
+val_fraction: 0.125    # Next 1/8th
+test_fraction: 0.125   # Last 1/8th
+
+# Normalization parameters
+# NOTE: Dataset normalize is DISABLED - task handles all (de)scaling
+# Task evaluator denormalizes using injected normalizer before computing rates
+normalize: false
+normalize_method: "rescale"  # Rescale from [0, P_max] to [-0.5, 0.5]
+# Note: P_max loaded from metadata.json, not specified here
+
+# Graph caching
+cache_graphs: true  # Cache graph.pt in memory (recommended)
+
+# Graph construction (PyG) from H_ls + associations
+# These parameters are consumed by WRADataset/build_interference_graph and can
+# differ from values used in primal-dual training/data collection.
+top_k: 10  # Keep top-K strongest interference edges per target node
+min_degree: 1  # Ensure at least this many incoming edges per node (including self-loop)
+edge_normalize_method: log1p  # log | log1p | none
+spectral_normalize_edge_weights: false  # If true, scale edge weights to spectral radius 1
+
+# Evaluation sampling
+n_samples_per_input: ${oc.select:trainer.n_samples_per_input, 1}  # Number of samples per network for evaluation (K); default 1 when no trainer (baseline eval)
+
+# Model-relevant dimensions
+model_in_timesteps: 1   # WRA has no temporal dimension (single snapshot)
+model_obs_timesteps: 0  # No historical context
+model_out_timesteps: 1  # Generate single power allocation
+model_cond_channels: 2  # Node features: [direct_signal, total_interference]
+
+# Data augmentation (on-the-fly, applied during training only)
+augment: false  # Master switch for all augmentations
+augment_noise_std: 0.0  # Gaussian noise added to power allocations (in normalized space)
+augment_channel_noise: 0.0  # Noise added to node features x
+augment_edge_dropout: 0.0  # Probability of dropping interference edges

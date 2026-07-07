@@ -1,0 +1,21 @@
+# @package _global_
+# Channel analysis config for the wra_medium_indoor_high_density scenario.
+# Use with: python scripts/configure_wra_dataset.py --config-name=channel_analysis/wra_medium_indoor_high_density
+#
+# This scenario shares the same channel cache as wra_medium (identical geometry).
+# Run this before PD training to see how the raised noise floor (−150 dBm/Hz)
+# affects the full-power rate distribution, and to obtain updated r_min recommendations.
+# Expect full-power rates to drop ~10–15 % vs wra_medium due to the higher noise floor.
+
+defaults:
+  - /scenario/wra_medium_indoor_high_density
+  - _self_
+
+num_examples: 5
+
+hydra:
+  run:
+    dir: outputs/${name}/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

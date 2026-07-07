@@ -1,0 +1,1 @@
+from graph_signal_diffusion.datasets.sp500.datamodule import SP500Builder  # noqa: F401

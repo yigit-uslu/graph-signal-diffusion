@@ -1,0 +1,99 @@
+% ugnn_fig2.tex -- Fig 2 body (block-interface inset). Drawing only.
+% \input AFTER _ugnn_preamble.tex.
+\begin{tikzpicture}[
+  >={Stealth[length=2.6mm]},
+  rounded corners=2pt,
+  proc/.style    = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=2.4cm, minimum height=1.05cm, inner sep=2pt,
+                    font=\footnotesize, fill=gnncol},   % GNN green
+  fuseb/.style   = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=1.3cm, minimum height=0.9cm, inner sep=2pt,
+                    font=\footnotesize, fill=projcol},  % projection amber
+  encbg/.style   = {rounded corners=9pt, fill=red!7,  draw=red!30!gray, thick,
+                    inner sep=7pt},
+  decbg/.style   = {rounded corners=9pt, fill=blue!7, draw=blue!30!gray, thick,
+                    inner sep=7pt},
+  selb/.style    = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=2.4cm, minimum height=0.95cm, inner sep=2pt,
+                    font=\footnotesize, fill=selcol},
+  sampb/.style   = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=1.5cm, minimum height=0.85cm, inner sep=2pt,
+                    font=\footnotesize, fill=white},
+  condb/.style   = {draw, thick, rounded corners=2pt, align=center,
+                    inner sep=3pt, font=\footnotesize, fill=black!5},
+  topkb/.style   = {draw, thick, rounded corners=2pt, align=center,
+                    minimum width=1.2cm, minimum height=0.75cm, inner sep=2pt,
+                    font=\footnotesize, fill=white},
+  splitdot/.style= {circle, fill=black, inner sep=0pt, minimum size=1.6mm},
+  sig/.style     = {-{Stealth[length=2.6mm]}, very thick},
+  feat/.style    = {-{Stealth[length=2.2mm]}, thick, teal!55!black},
+  ctrl/.style    = {-{Stealth[length=2.2mm]}, thick, densely dashed, orange!75!black},
+  skip/.style    = {-{Stealth[length=2.2mm]}, thick, dashed, violet!80!black},
+  condarr/.style = {-{Stealth[length=2.0mm]}, thick, gray!55!black, densely dashed},
+  elbl/.style    = {font=\footnotesize, inner sep=1.5pt, fill=white,
+                    fill opacity=0.85, text opacity=1},
+  hd/.style      = {font=\small\bfseries},
+]
+
+% ---------- ENCODER block (depth b) : flows top -> down ----------
+\node[fuseb] (Epi)   at (0,6.8) {$\Piblk{b}$\\[1pt]{\scriptsize fuse}};
+\node[proc]  (Egnn)  at (0,5.0) {$\PhiEnc{b}(\bbP_b,\bbS;$\\$\thetaenc_b,\bbD_b)$};
+\node[splitdot](Esp) at (0,3.6) {};
+\node[sampb] (Edown) at (0,0.5) {$\downarrow\,\bbC_{b+1}$\\[1pt]{\scriptsize to depth $b{+}1$}};  % OUTSIDE panel
+\node[condb] (Econd) at (-4.0,6.8) {$\bbD_b\UK$};
+\node[selb]  (Epsi)  at (-4.0,3.6) {$\Psisel{b}(\bbZ_b,$\\$\bbD_b\UK;\thetasel_{b})$};
+\node[topkb] (Etopk) at (-4.0,2.0) {$\mathrm{TopK}$};
+
+\draw[sig]  (0,8.2) -- (Epi.north)
+            node[elbl,pos=0.45,align=center]{$\bbV_b=\bbC_b\bbZ_{b-1}$\\(from depth $b{-}1$)};
+\draw[condarr] (Econd.east) -- (Epi.west);
+\draw[sig]  (Epi.south)  -- (Egnn.north) node[elbl,pos=0.5]{$\bbP_b$};
+\draw[sig]  (Egnn.south) -- (Esp)        node[elbl,pos=0.55]{$\bbZ_b$};
+\draw[sig]  (Esp) -- (Edown.north);
+\draw[feat] (Esp) -- (Epsi.east)         node[elbl,pos=0.5]{$\bbZ_b$};
+\draw[condarr] (Econd.south) -- (Epsi.north);
+\draw[sig]  (Epsi.south) -- (Etopk.north) node[elbl,pos=0.5]{$\bbvv_{b}$};
+\draw[ctrl] (Etopk.east) |- (Edown.west)  node[elbl,pos=0.7]{$\bbC_{b+1}$};
+
+% ---------- DECODER block (depth b) : flows bottom -> up ----------
+\node[sampb] (Dup)   at (9,0.5) {$\uparrow\,\bbC_{b+1}^{\top}$};  % OUTSIDE panel
+\node[fuseb] (Dskip) at (9,3.6) {$\Piskip{b}$\\[1pt]{\scriptsize skip-fuse}};
+\node[fuseb] (Dpi)   at (9,5.2) {$\Piblk{b}$\\[1pt]{\scriptsize fuse}};
+\node[proc]  (Dgnn)  at (9,6.9) {$\PhiDec{b}(\bbP_b,\bbS;$\\$\thetadec_b,\bbD_b)$};
+\node[condb] (Dcond) at (13.2,5.2) {$\bbD_b\UK$};
+
+\draw[sig]  (9,-0.7) -- (Dup.south)
+            node[elbl,pos=0.32,align=left,anchor=west,xshift=4pt]{$\bbY_{b+1}$\\(from depth $b{+}1$)};
+\draw[sig]  (Dup.north)   -- (Dskip.south) node[elbl,pos=0.5]{$\bbC_{b+1}^{\top}\bbY_{b+1}$};
+\draw[sig]  (Dskip.north) -- (Dpi.south)   node[elbl,pos=0.5]{$\bbV_b$};
+\draw[condarr] (Dcond.west) -- (Dpi.east);
+\draw[sig]  (Dpi.north)   -- (Dgnn.south)  node[elbl,pos=0.5]{$\bbP_b$};
+\draw[sig]  (Dgnn.north)  -- (9,8.4)
+            node[elbl,pos=0.6,align=center]{$\bbY_b$\\(to depth $b{-}1$)};
+
+% ---------- cross-links between the two blocks ----------
+% skip Z_b : encoder split -> decoder skip-fusion
+\draw[skip] (Esp) -- (Dskip.west) node[elbl,pos=0.5]{skip $\bbZ_b$};
+% reuse C_{b+1} : encoder selector -> decoder up-sampling
+\draw[ctrl] (Edown.south) -- (0,-1.3) -- (9,-1.3) -- (Dup.south)
+            node[elbl,pos=0.32,below]{$\bbC_{b+1}$ reused as $\bbC_{b+1}^{\top}$};
+
+% ---------- headers + caption ----------
+\node[hd] (Ehdr) at (0,9.0)  {Encoder block (depth $b$)};
+\node[hd] (Dhdr) at (9,9.0)  {Decoder block (depth $b$)};
+
+% ---------- half-panel background tints (light red / light blue) ----------
+\begin{scope}[on background layer]
+  \node[encbg, fit={(Ehdr)(Econd)(Epi)(Egnn)(Esp)(Epsi)(Etopk)(0,9.4)}] {};
+  \node[decbg, fit={(Dhdr)(Dskip)(Dpi)(Dgnn)(Dcond)(9,9.4)}] {};
+\end{scope}
+
+\ifshowcaption
+\node[font=\small, align=center] at (4.5,-2.3)
+  {\textbf{Fig.~2.} Block interface. The fusion layer $\Piblk{b}$ is shared across the
+   matched encoder/decoder pair; the selection matrix $\bbC_{b+1}$ produced by
+   $\Psisel{b}$ on the encoder side is reused (transposed) by the decoder's
+   up-sampling. Global embeddings enter as $\bbD_b\UK$.};
+\fi
+
+\end{tikzpicture}

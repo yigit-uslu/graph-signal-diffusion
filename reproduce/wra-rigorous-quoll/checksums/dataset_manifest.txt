@@ -1,0 +1,6 @@
+# rigorous-quoll-131 expert dataset manifest (relative to DATASET_ROOT)
+# format: <relpath>|<file_count>|<total_bytes>
+medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h0dd7afd393f9|6469|9811675179
+medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203|12902|9918648262
+medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_hc1f8f7a25432|6469|9810886919
+medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_ha6c7c432ee13|6469|9811853762

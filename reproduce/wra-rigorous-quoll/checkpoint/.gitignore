@@ -1,0 +1,4 @@
+# The rank-1 ep1600 checkpoint is intentionally bundled with this reproduction
+# package via REGULAR git (only ~8 MB, frozen). Re-include it despite the
+# project-wide `*.pt` ignore in the root .gitignore. NOT git-LFS — a plain blob.
+!best_model_epoch_1600.pt

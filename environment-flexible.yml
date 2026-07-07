@@ -1,0 +1,69 @@
+name: graph-signal-diffusion
+channels:
+  - pytorch
+  - pyg
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Core Python
+  - python=3.11
+
+  # PyTorch ecosystem (auto-detects available CUDA version)
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
+  # NOTE: pytorch-cuda line removed - conda will auto-detect your CUDA version
+  # This makes the environment portable across systems with different CUDA versions
+
+  # PyTorch Geometric (from pyg channel)
+  - pyg=2.5.2
+
+  # Scientific computing
+  - numpy=1.26.4
+  - scipy=1.15.3
+  - pandas=2.2.3
+
+  # Visualization
+  - matplotlib=3.10.3
+  - seaborn=0.13.2
+  - networkx=2.8.8
+
+  # Machine Learning
+  - scikit-learn=1.4.1
+
+  # Configuration management
+  - hydra-core=1.3.2
+  - omegaconf=2.3.0
+  - pyyaml=6.0.2
+
+  # Utilities
+  - tqdm=4.67.1
+  - pillow=11.2.1
+
+  # Install remaining packages via pip
+  - pip=24.0
+  - pip:
+      # PyTorch extensions (will match auto-detected CUDA version)
+      - torch-scatter==2.1.2
+      - torch-sparse==0.6.18
+      - torch-cluster==1.6.3
+      - torch-spline-conv==1.2.2
+      # Type checking
+      - jaxtyping==0.3.5
+      - beartype==0.22.9
+      # Training utilities
+      - accelerate==1.6.0
+      - wandb==0.16.6
+      # Data
+      - yfinance==1.1.0
+      # Install project in editable mode
+      - -e .
+
+# Notes:
+# - This is the FLEXIBLE version for cross-system compatibility
+# - Conda will automatically detect and use your available CUDA version
+# - Works on systems with CUDA 11.8, 12.1, 12.4, or CPU-only
+# - For exact reproducibility on a specific system, use environment.yml instead
+# - If you encounter issues with torch-scatter/sparse/cluster builds,
+#   install them manually: pip install torch-scatter -f https://data.pyg.org/whl/torch-2.5.1+${CUDA}.html

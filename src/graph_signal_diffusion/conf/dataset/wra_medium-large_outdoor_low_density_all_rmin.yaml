@@ -1,0 +1,25 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+name: wra
+scenario: medium-large_outdoor_low_density_all_rmin
+datasets:
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_hd8d168fe5810"  # r_min=0.4
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h26dde690eca5"  # r_min=0.5
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"  # r_min=0.6
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h0f9e518a51ae"  # r_min=0.7
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h391ad7cf511b"  # r_min=0.8
+
+model_cond_channels: 3  # Add r_min as a third node feature channel (in addition to direct_signal and total_interference)
+
+# 5x the data (5 sub-datasets x 32 networks x 200 samples = 32,000 total samples).
+# Scale batch sizes proportionally to keep ~similar iterations per epoch.
+batch_size: 1000      # 32,000 * 0.625 = 20,000 training samples per epoch / 1000 = 20 iterations per epoch
+batch_size_val: 1000  # 5 * 32 * 0.125 * 50 = 1,000 val samples / 1000 = 1 val batches per epoch
+
+# 5:1:2 split strategy: each sub-dataset independently splits by network ID
+train_fraction: 0.625  # First 5/8 of networks in each sub-dataset
+val_fraction: 0.125    # Next 1/8th
+test_fraction: 0.25    # Last 1/4th

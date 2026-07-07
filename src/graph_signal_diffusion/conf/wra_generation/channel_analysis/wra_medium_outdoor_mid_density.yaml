@@ -1,0 +1,20 @@
+# @package _global_
+# Channel analysis config for the wra_medium_outdoor_mid_density scenario.
+# Use with: python scripts/configure_wra_dataset.py --config-name=channel_analysis/wra_medium_outdoor_mid_density
+#
+# Run this before PD training to obtain full-power rate statistics and r_min
+# recommendations (r_min_easy, r_min_moderate, r_min_challenging, r_min_very_hard).
+# Use those values to set training.r_min in pd_training/wra_medium_outdoor_mid_density.yaml.
+
+defaults:
+  - /scenario/wra_medium_outdoor_mid_density
+  - _self_
+
+num_examples: 5
+
+hydra:
+  run:
+    dir: outputs/${name}/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${channel_cache_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

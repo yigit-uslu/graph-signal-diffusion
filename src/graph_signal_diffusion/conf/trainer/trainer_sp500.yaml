@@ -1,0 +1,59 @@
+# @package trainer
+defaults:
+  - default
+  - _self_
+
+# Stock Price Forecasting (SP500) trainer overrides.
+name: gdm_sp500
+
+optimizer:
+  name: adamw
+  learning_rate: 0.0001 # A peak lr of 1e-4
+  betas: [0.9, 0.98]   # Used by Adam/AdamW only
+  weight_decay: 1e-4     # Used by Adam/AdamW/SGD
+  momentum: 0.9         # Used by SGD only
+
+lr_scheduler:
+  enabled: true
+  name: cosine      # Linear warmup + cosine decay
+  warmup_ratio: 0.01       # Warmup for 1% of total optimizer steps
+  min_lr_ratio: 0.01       # Final LR is 1% of peak LR
+  decay_fraction: 0.8     # Decay completes at 50% of total training steps, then holds at min_lr_ratio for the remaining epochs
+
+max_epochs: 1000
+# batch_size: ${dataset.batch_size}
+log_every_n_steps: 100
+
+eval_every_n_epochs: 50    # Legacy fallback; eval_schedule below takes precedence.
+eval_schedule:
+#   type: uniform
+#   period: 50
+#   eval_on_last_epoch: true
+  # Multi-phase example (dense → sparse → dense for the last 150 epochs):
+  type: multi_phase
+  eval_on_first_epoch: false
+  eval_on_last_epoch: true
+  phases:
+    - period: 5       # eval every 10 epochs for the first 100 epochs
+      until_epoch: 20
+    - period: ${trainer.eval_every_n_epochs}      # eval every 50 epochs until the last 150 epochs
+      until_epoch: -20   # resolves to (max_epochs - 100)
+    - period: 5       # eval every 10 epochs for the final phase
+
+n_samples_per_input: 50 # number of samples to generate per input instance during evaluation
+save_checkpoint_every_n_epochs: 1000
+
+max_num_val_batches: 5 # number of validation batches to evaluate per epoch (set to -1 to evaluate on all batches); default 10 for more robust validation metrics
+max_num_test_batches: -1 # number of test batches in final test evaluation (set to -1 to evaluate all)
+
+
+best_model:
+  ema_alpha: 1.0  # No EMA smoothing; just track the best single checkpoint per the val metric.
+  metrics:
+    - name: val_return_crps   # Tier 1 – probabilistic (log-return scale ~0.01-0.04)
+      weight: 0.5
+      direction: minimize
+    - name: val_return_mae    # Tier 1 – pointwise (log-return scale ~0.01-0.04)
+      weight: 0.5
+      direction: minimize
+    

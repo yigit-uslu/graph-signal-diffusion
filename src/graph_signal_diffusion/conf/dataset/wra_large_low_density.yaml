@@ -1,0 +1,8 @@
+# @package dataset
+defaults:
+  - wra 
+  - _self_
+
+name: wra
+scenario: large_low_density
+datasets: []  # Specify the full content-addressed path from build_diffusion_dataset.py

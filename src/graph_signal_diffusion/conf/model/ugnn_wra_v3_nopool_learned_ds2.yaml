@@ -1,0 +1,17 @@
+# @package model
+defaults:
+  - ugnn_wra_v3_neighborhood_max_learned_ds2
+  - _self_
+
+# UGNN WRA: neighborhood max-pooling + learned 2x downsampling (after depth 0)
+# with V3 selector settings.
+name: ugnn_wra_v3_nopool_learned_ds2
+
+config:
+
+  pooling_config:
+    # -------------------------------------------------------------------------
+    # Topology + neighborhood aggregation (explicit; no inheritance)
+    # -------------------------------------------------------------------------
+    pool_K: 0
+    neighborhood_pooling: null

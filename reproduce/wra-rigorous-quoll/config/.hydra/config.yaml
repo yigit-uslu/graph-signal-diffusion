@@ -1,0 +1,312 @@
+dataset:
+  name: wra
+  batch_size: 800
+  batch_size_val: 800
+  num_workers: 4
+  root: ${hydra:runtime.cwd}/data/wra
+  pin_memory: false
+  persistent_workers: false
+  drop_last: false
+  _target_: graph_signal_diffusion.datasets.wra.datamodule.WRABuilder
+  datasets:
+  - medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h0dd7afd393f9
+  - medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203
+  - medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_hc1f8f7a25432
+  - medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_ha6c7c432ee13
+  train_fraction: 0.625
+  val_fraction: 0.125
+  test_fraction: 0.25
+  normalize: false
+  normalize_method: rescale
+  cache_graphs: true
+  top_k: 10
+  min_degree: 1
+  edge_normalize_method: log1p
+  spectral_normalize_edge_weights: false
+  n_samples_per_input: ${oc.select:trainer.n_samples_per_input, 1}
+  model_in_timesteps: 1
+  model_obs_timesteps: 0
+  model_out_timesteps: 1
+  model_cond_channels: 2
+  augment: false
+  augment_noise_std: 0.0
+  augment_channel_noise: 0.0
+  augment_edge_dropout: 0.0
+  scenario: medium-large_outdoor_all_density
+model:
+  name: ugnn_wra_v3_ds8_norm_act_head
+  _target_: graph_signal_diffusion.models.ugnn.UGNN
+  config:
+    _target_: graph_signal_diffusion.models.ugnn.UGNNConfig
+    in_channels: 1
+    out_channels: 1
+    base_channels: 64
+    channel_multipliers:
+    - 1
+    - 1
+    - 1
+    gnn_config:
+      _target_: graph_signal_diffusion.models.ugnn.GNNConfig
+      K: 2
+      num_layers: 2
+      norm_type: layer
+      dropout: 0.1
+      activation: relu
+      normalize: false
+      use_strided_conv: true
+      use_pre_activation: false
+      temporal_mixer:
+        enabled: false
+        schedule: per_layer
+        kernel_size: 3
+        causal: true
+        use_pointwise: false
+        gated: false
+        dilations: null
+        attention:
+          enabled: false
+          num_heads: 4
+          dropout: 0.0
+          max_timesteps: null
+      pointwise_sparse_mode: auto
+      pointwise_sparse_threshold: 0.75
+      max_gnn_stride: 2
+      strided_power_mode: a_plus_i
+    pooling_config:
+      _target_: graph_signal_diffusion.models.ugnn.PoolingConfig
+      gamma:
+      - 2
+      - 2
+      - 2
+      pool_K: 0
+      selection_method: learned
+      selector_hidden_norm_type: layer
+      selector_kwargs:
+        selection_mode: ste
+        temperature: 1.0
+        temperature_schedule: linear
+        temperature_min: 0.5
+        temperature_warmup_steps: 0
+        temperature_anneal_steps: 0
+        collect_sampling_probe: false
+      selector_packed_score_mode: auto
+      selector_packed_score_threshold: 0.75
+      max_pool_stride: null
+      neighborhood_pooling: null
+      neighborhood_include_self: true
+      neighborhood_max_dense_gb: 12.0
+      selector_skip_gamma1_levels: true
+      selector_version: v3
+      min_retained_nodes: 1
+      selector_temporal_reduce: mean
+      selector_use_cond_fusion: true
+      selector_cond_fusion_mode: add
+      selector_cond_fusion_heads: 4
+      selector_cond_fusion_dropout: 0.0
+      selector_time_emb_dim: 128
+      selector_exploration_noise: 1.0
+      selector_exploration_noise_min: 0.0
+      selector_exploration_noise_schedule: linear
+      selector_exploration_noise_anneal_steps: 0
+      selector_exploration_noise_warmup_steps: 0
+      selector_collect_heavy_diagnostics: false
+      entropy_reg_weight: 0.0
+      entropy_reg_depth_scale: 1.0
+    upsampling_config:
+      _target_: graph_signal_diffusion.models.ugnn.UpsamplingConfig
+      method: zero
+    embedding_config:
+      _target_: graph_signal_diffusion.models.ugnn.EmbeddingConfig
+      time_embed_dim: 128
+      num_timesteps: ${oc.select:diffusion.num_timesteps, 500}
+      cond:
+        channels: ${oc.select:dataset.model_cond_channels, null}
+        embed_dim: 128
+        shared_encoder:
+          temporal:
+            hidden_channels:
+            - 32
+            num_layers: 1
+            mixer:
+              kernel_size: 3
+              causal: true
+              use_pointwise: false
+              dilations: null
+            output:
+              mode: static
+              static:
+                pooling:
+                  method: last
+                  ema:
+                    alpha_init: 0.8
+              time_varying:
+                method: learned_projection
+                learned_projection:
+                  source_timesteps: null
+                  target_timesteps: null
+        block_fusion:
+          mode: concat
+          projection:
+            type: linear
+            per_level: true
+          cross_attention:
+            heads: 4
+            dropout: 0.0
+            bias: true
+            causal: false
+    num_bottleneck_layers: 2
+    skip_connection_mode: concat
+    compact_skip_cache: true
+    output_head_config:
+      _target_: graph_signal_diffusion.models.ugnn.OutputHeadConfig
+      mode: norm_act_linear
+      norm_type: layer
+      activation: silu
+      zero_init: true
+diffusion:
+  name: ddim_wra
+  _target_: graph_signal_diffusion.diffusion.ddim.DDIM
+  num_timesteps: 500
+  beta_schedule: linear
+  beta_start: 0.0001
+  beta_end: 0.02
+  loss_type: l2
+  parameterization: eps
+  clip_denoised: true
+  sampling_timesteps: 100
+  ddim_eta: 0.2
+  revin: false
+  revin_eps: 1.0e-05
+  revin_cond_feature_idx: 4
+  revin_blend_weight: 1.0
+  revin_sigma_correction: ${revin_alpha:${.revin_blend_weight},${oc.select:dataset_info.sigma_cond_mean_train,0.82}}
+trainer:
+  name: gdm_wra_medium-large_outdoor_all_density
+  max_epochs: 5000
+  batch_size: ${oc.select:dataset.batch_size, 32}
+  optimizer:
+    name: adamw
+    learning_rate: 0.0001
+    betas:
+    - 0.9
+    - 0.98
+    weight_decay: 0.0001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: true
+    name: cosine
+    warmup_ratio: 0.01
+    min_lr_ratio: 0.05
+    decay_fraction: 0.8
+  selector_temperature_schedule:
+    enabled: true
+    warmup_ratio: 0.02
+    anneal_ratio: 0.73
+    warmup_steps: null
+    anneal_steps: null
+  device: cuda
+  max_grad_norm: 1.0
+  log_every_n_steps: 100
+  eval_every_n_epochs: 50
+  eval_schedule:
+    type: multi_phase
+    period: 10
+    eval_on_first_epoch: false
+    eval_on_last_epoch: true
+    phases:
+    - period: 10
+      until_epoch: 100
+    - period: 50
+      until_epoch: -100
+    - period: 20
+  max_num_val_batches: -1
+  max_num_train_val_batches: 1
+  max_num_test_batches: -1
+  run_final_test: true
+  measure_forward_speed: false
+  forward_speed_warmup_steps: 5
+  forward_speed_max_steps: -1
+  n_samples_per_input: 50
+  save_checkpoint_every_n_epochs: 1000
+  use_amp: true
+  compile: false
+  log_level: INFO
+  diagnose_model:
+    enabled: true
+    diagnose_selector_every_n_epochs: ${trainer.eval_every_n_epochs}
+    selector_sampling_max_network_plots: 4
+    selector_summary_max_network_rows: -1
+    plot_sampling_heatmap:
+      enabled: true
+      plot_every_n_epochs: null
+      max_network_plots: 2
+    plot_node_stats:
+      enabled: false
+      plot_every_n_epochs: null
+      max_network_plots: 2
+    plot_hard_mask:
+      enabled: false
+      plot_every_n_epochs: null
+      max_network_plots: 2
+    plot_freq_evolution:
+      enabled: true
+      plot_every_n_epochs: null
+      max_network_plots: 2
+    plot_scalar_series:
+      enabled: true
+      plot_every_n_epochs: 5
+  best_model:
+    enabled: true
+    top_k: 5
+    ema_alpha: 1.0
+    min_warmup_evals: 3
+    metrics:
+    - name: val_rate_mean_violation_gap_pct_generated
+      weight: 0.5
+      direction: minimize
+    - name: val_rate_1pct_gap_pct
+      weight: 0.25
+      direction: minimize
+    - name: val_rate_5pct_gap_pct
+      weight: 0.25
+      direction: minimize
+    subdataset_aggregation: mean
+  selector_exploration_schedule:
+    enabled: true
+    warmup_ratio: 0.02
+    anneal_ratio: 0.73
+task:
+  name: wireless_resource_allocation
+  _target_: graph_signal_diffusion.tasks.wireless_resource_allocation.evaluator.WirelessResourceAllocationTask
+  valid_datasets:
+  - wra
+  num_channel_realizations: 500
+  ergodic_window_size: 5
+  num_eval_batches: 10
+  eval_h_chunk_size: 50
+  eval_h_cache_budget_gb: 2.0
+  h_io_mode: auto
+  h_sidecar_filename: H_instantaneous_tmn.npy
+  plot_style:
+    plots:
+      selector_rate_correlation:
+        enabled: true
+        max_networks_per_dataset: 1
+        probe_timestep_fraction: 0.1
+      task_power_scatter:
+        max_networks_per_dataset: 1
+        enabled: false
+      task_rate_evolution:
+        max_networks_per_dataset: 1
+        enabled: false
+wandb:
+  enabled: true
+  project: graph-signal-diffusion
+  entity: yigit-uslu-university-of-pennsylvania-school-of-engineer
+  group: null
+  tags: []
+  notes: null
+  name: null
+  mode: online
+seed: 0
+run_name: null

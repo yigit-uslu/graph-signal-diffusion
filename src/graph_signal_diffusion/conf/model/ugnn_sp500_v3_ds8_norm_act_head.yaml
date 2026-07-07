@@ -1,0 +1,47 @@
+# @package model
+defaults:
+  - ugnn_sp500_v3_ds8
+  - _self_
+
+# DDPM/EDM-style output head variant of ugnn_sp500_v3_ds8 (cyber-doberman-15
+# base). Replaces the default single-Linear head with:
+#
+#   LayerNorm(final_channels) → SiLU → Linear(final_channels, out_channels)
+#
+# and zero-initializes the final linear's weight + bias.
+#
+# Rationale:
+#   - LayerNorm over the channel dim (T and N are NOT mixed by the norm —
+#     each (batch, timestep, node) position is normalized independently
+#     across its `final_channels` values, transformer/DiT-style). This
+#     stabilizes the input scale to the final linear regardless of how the
+#     terminal GNN layers' Linear-after-residual washes out preceding norms.
+#   - SiLU matches DDPM/EDM/ADM output-head convention.
+#   - Zero-init makes the untrained head emit exactly zero; under
+#     diffusion.parameterization='eps' this gives ε̂≈0 at init, so the very
+#     first DDIM step is approximately the identity. This is the canonical
+#     convergence-friendly starting point used in DDPM, EDM, ADM, DiT, etc.
+#
+# Everything else is inherited from ugnn_sp500_v3_ds8 (4-level [1,2,2,2]
+# learned-downsampling backbone, dropout=0.10, cross-attention conditioning,
+# 2 bottleneck layers, etc.). To launch a run, swap the model selection via
+# the task's nested model group (Hydra namespaces /model under task.model
+# when it's listed in a task's defaults):
+#
+#   python -m graph_signal_diffusion.cli.train \
+#     task=stock_price_forecasting_v3_learned_ds8 \
+#     model@task.model=ugnn_sp500_v3_ds8_norm_act_head \
+#     ...
+#
+# (The bare `model=...` override won't work for task-nested model configs —
+# Hydra will reject it with "Could not override 'model'. Did you mean to
+# override model@task.model?")
+name: ugnn_sp500_v3_ds8_norm_act_head
+
+config:
+  output_head_config:
+    _target_: graph_signal_diffusion.models.ugnn.OutputHeadConfig
+    mode: norm_act_linear
+    norm_type: layer
+    activation: silu
+    zero_init: true

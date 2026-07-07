@@ -1,0 +1,157 @@
+# @package trainer
+defaults:
+  - trainer_sp500_v3_learned_ds4
+  - _self_
+
+# SP500 trainer for the DS8 architecture (4-level [1,2,2,2] learned downsampling
+# with 8x bottleneck compression). Diverges from trainer_sp500_v3_learned_ds4
+# along the training-schedule + best-model-tracker axes:
+#
+#   1. Longer run: max_epochs=2500 (vs 1000) with denser eval phases.
+#   2. Per-window probabilistic calibration tracker (3-term composite
+#      val_loss + |gap| + 0.3·val_return_crps) instead of inherited CRPS+MAE.
+#      Requires the val_loss_gap derived metric committed 2026-05-14.
+#   3. save_checkpoint_every_n_epochs=50 so the tracker's picks reliably land
+#      on saved DDIM checkpoints.
+#   4. n_samples_per_input=10 (vs the trainer_sp500 default of 50) for faster
+#      eval loops during training.
+#
+# selector_temperature_schedule and diagnose_model blocks are listed
+# explicitly below (rather than inherited silently from learned_ds4) for
+# legibility and to make the SP500-vs-WRA differences inspectable in-file.
+# lr_scheduler.min_lr_ratio=0.05 and use_amp=true are still inherited.
+name: gdm_sp500_v3_learned_ds8
+
+max_epochs: 2500
+eval_every_n_epochs: 25
+eval_schedule:
+  type: multi_phase
+  eval_on_first_epoch: false
+  eval_on_last_epoch: true
+  phases:
+    - period: 50
+      until_epoch: 250
+    - period: 25
+      until_epoch: 750
+    - period: 100
+
+save_checkpoint_every_n_epochs: 50
+
+n_samples_per_input: 10
+
+# Generalization-gap-aware composite tracker.
+# See feedback_sp500_best_model_tracker_calibration memory + the
+# val_loss_gap_metric_2026-05-14 doc for rationale + α-sweep analysis.
+best_model:
+  ema_alpha: 1.0
+  metrics:
+    - name: val_loss
+      weight: 1.0
+      direction: minimize
+    - name: val_loss_gap
+      weight: 1.0
+      direction: minimize
+    - name: val_return_crps
+      weight: 0.3
+      direction: minimize
+
+# Validation batch counts — tighter than learned_ds4's val=1/tv=0 because we
+# want train-val emitted on every eval epoch to keep val_loss_gap populated.
+max_num_val_batches: 2
+max_num_train_val_batches: 1
+
+
+# ── Selector temperature schedule ─────────────────────────────────────────
+# Identical to trainer_sp500_v3_learned_ds4's inherited values; listed
+# explicitly so the schedule is visible at the launcher's eye-line.
+#
+# train.py's _resolve_selector_temperature_schedule() auto-computes
+# temperature_warmup_steps and temperature_anneal_steps from total
+# optimizer steps and writes them into model.config.pooling_config.selector_kwargs
+# at runtime. Only applies when selection_method='learned' (which the ds8
+# model yaml guarantees).
+#
+# anneal_ratio=0.90 vs WRA's 0.60: the ARM K analysis on WRA showed that
+# slow linear anneal spends ~2.25× more epochs in the productive T∈[0.4, 0.8)
+# range vs faster anneal. SP500 inherits that finding from learned_ds4.
+#
+# Decay shape (cosine|linear|constant) lives on
+# model.config.pooling_config.selector_kwargs.temperature_schedule —
+# the ds4 model yaml sets it to 'linear' (ARM K finding).
+selector_temperature_schedule:
+  enabled: true
+  warmup_ratio: 0.02       # Hold initial temperature for 2% of total optimizer steps.
+  anneal_ratio: 0.90       # Anneal across 90% of remaining steps to temperature_min.
+  warmup_steps: null       # Explicit override (takes precedence over warmup_ratio if non-null).
+  anneal_steps: null       # Explicit override (takes precedence over anneal_ratio if non-null).
+
+
+# ── Model diagnostics ─────────────────────────────────────────────────────
+# Selector-aggregation, JSONL-recording, and plotting controls.
+#
+# Which fields are domain-agnostic vs WRA-specific:
+#   - All `enabled` / `plot_every_n_epochs` / cadence fields apply identically
+#     to SP500. The selector instrumentation code (aggregation, sampling
+#     heatmaps, scalar-series, frequency evolution) is dataset-agnostic.
+#   - `max_network_plots` is the one knob where SP500 differs meaningfully
+#     from WRA. In WRA each dataset contains MANY distinct graph instances
+#     (e.g., medium-large_outdoor_all_density × 5 r_min values × multiple
+#     PD-seeds → tens of networks); plotting a couple per evaluation is a
+#     representative sample. SP500-cleaned has ONE correlation graph shared
+#     across all 2,728 forecast windows, so max_network_plots=1 covers it
+#     completely. Setting >1 just produces redundant duplicate plots.
+#   - plot_node_stats and plot_hard_mask are kept OFF by default (same as
+#     learned_ds4 inheritance). They produce per-stock selection heatmaps
+#     that ARE more interpretable for SP500 (each node = a named stock vs
+#     WRA's anonymous radio links), but they add per-eval rendering cost.
+#     Enable on a per-run basis when you want to inspect which stocks the
+#     selector consistently keeps at the coarsest levels.
+diagnose_model:
+  enabled: true
+  # Heavy selector diagnostics cadence (0 disables heavy diagnostics).
+  diagnose_selector_every_n_epochs: ${trainer.eval_every_n_epochs}
+  # Max per-network rows written to selector_diagnostic_summaries.jsonl
+  # (-1 = all, 0 = disable). On SP500 the single graph contributes once
+  # per eval, so -1 vs 1 produces the same output.
+  selector_summary_max_network_rows: -1
+
+  plot_sampling_heatmap:
+    # selection_given_available_by_level vs probe_timesteps per network.
+    # The diffusion timestep is the meaningful axis here; useful regardless
+    # of domain.
+    enabled: true
+    plot_every_n_epochs: null   # null = every eval event
+    max_network_plots: 1        # SP500: 1 network → 1 plot suffices.
+
+  plot_node_stats:
+    # Per-node (= per-stock for SP500) selection frequency summaries and
+    # selector score / soft-mask stats. Heavy. Off by default.
+    enabled: false
+    plot_every_n_epochs: null
+    max_network_plots: 1
+
+  plot_hard_mask:
+    # Per-node binary selection-mask means by selector level. Heavy. Off
+    # by default. When ON for SP500, shows which stocks the post-anneal
+    # selector keeps at L1, L2, L3 — interpretable but slow to render
+    # every eval.
+    enabled: false
+    plot_every_n_epochs: null
+    max_network_plots: 1
+
+  plot_freq_evolution:
+    # Epoch-to-epoch evolution of per-node selection frequency (EMA) from
+    # selector_diagnostic_summaries.jsonl. Cheap (reads JSONL, doesn't
+    # re-aggregate). Useful for spotting selector specialization drift.
+    enabled: true
+    plot_every_n_epochs: null
+    max_network_plots: 1
+
+  plot_scalar_series:
+    # Global / per-level scalar curves from selector_diagnostic_summaries.jsonl:
+    # temperature, entropy aux loss, and other scalar selector stats.
+    # Domain-agnostic. Cheap.
+    enabled: true
+    plot_every_n_epochs: 5
+
+use_amp: true  # Inherited from default; restated here for visibility. SP500 benefits from mixed precision for faster training and reduced memory usage, especially with the larger ds8 architecture.

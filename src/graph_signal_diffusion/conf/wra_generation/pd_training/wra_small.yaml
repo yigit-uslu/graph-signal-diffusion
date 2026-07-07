@@ -1,0 +1,21 @@
+# @package _global_
+# PD expert training config for the wra_small scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_small
+
+defaults:
+  - /scenario/wra_small
+  - /pd_training/defaults
+  - _self_
+
+training:
+  r_min: 0.5
+  batch_size: 16
+  alpha_dual: 1.0
+  dual_update_frequency: 10
+  dual_momentum: 0.9
+  convergence_window: 1000
+  convergence_patience: 2000
+  violation_fraction_on_model_avg_rates_threshold: 0.01
+  moving_avg_window: ${.num_samples_per_network}
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

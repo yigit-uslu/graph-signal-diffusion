@@ -1,0 +1,22 @@
+name: size_transfer
+
+target_profiles:
+  - wra_mega_outdoor_low_density
+  - wra_medium-large_outdoor_low_density
+  - wra_medium_outdoor_low_density
+
+baselines_to_compare: [fp, wmmse, diffusion]
+n_samples_per_network: 50
+
+batch_size_val: 8
+num_workers: 0
+pin_memory: false
+persistent_workers: false
+
+eval_max_batches: null
+visualize: true
+
+allow_pmax_mismatch: false
+auto_generate_cache: true
+require_existing_cache: false
+

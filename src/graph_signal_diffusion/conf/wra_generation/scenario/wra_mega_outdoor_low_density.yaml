@@ -1,0 +1,41 @@
+# @package _global_
+# WRA mega outdoor low-density scenario.
+#
+# A large-scale outdoor scenario with 1200 TX-RX links deployed over a 10 km × 10 km area:
+#   - 1200 links / 144 km² ≈ 8 pairs/km² (sparser than wra_medium's ~20 pairs/km²,
+#     but "high-density" in the sense of link count per network: 1200 vs 200)
+#   - Default LoS pairing geometry inherited from scenario/defaults (10–70 m, exponent 2)
+#   - Thermal noise floor (−174 dBm/Hz)
+#   - max_recursion_depth: 5 required for V3 to successfully subdivide 1200-link networks
+#   - num_networks: 16 (reduced from 128; each network is 6× larger than wra_medium)
+#
+# Full-power baseline guidance: run channel_analysis/wra_mega_outdoor_mid_density
+# to obtain rate statistics and r_min recommendations before PD training.
+
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_mega_outdoor_low_density
+
+
+dataset:
+  num_networks: 64
+  n_links: 1200
+  deployment_range: 12000.0  # metres
+
+
+channel:
+  min_tx_rx_distance: 20.0   # metres — keeps pairs out of the LoS sub-100 m regime
+  max_tx_rx_distance: 100.0  # metres — up to mid-NLoS range
+  min_tx_tx_distance: 50.0  # metres — wider spacing to preserve dominance criterion
+
+  max_deployment_attempts: 1000
+  max_recursion_depth: 5  # increased from default 3 to handle 1200-link network generation
+
+
+system:
+  bandwidth_Hz: 40e6  # 40 MHz bandwidth to effectively increase noise floor by +6 dB
+
+

@@ -1,0 +1,90 @@
+# @package trainer
+defaults:
+  - trainer_wra
+  - _self_
+
+# Test the new v3 learned node downsampling path on the wra_large_outdoor_low_density dataset.
+name: gdm_wra_v3_learned_ds4
+
+max_num_val_batches: -1          # Evaluate on all validation batches for more stable metrics (only 2 batches in wra_debug, so this is fast)
+max_num_train_val_batches: 1
+max_num_test_batches: -1
+
+
+eval_every_n_epochs: 200    # Legacy fallback; eval_schedule below takes precedence.
+eval_schedule:
+  # type: uniform
+  # period: ${trainer.eval_every_n_epochs}
+  # eval_on_first_epoch: false
+  # eval_on_last_epoch: true
+  type: multi_phase
+  eval_on_first_epoch: false
+  eval_on_last_epoch: true
+  phases:
+    - period: 20        # eval every 20 epochs for the first 100 epochs
+      until_epoch: 100
+    - period: ${trainer.eval_every_n_epochs}      # eval every 50 epochs until the last 100 epochs
+      until_epoch: -100   # resolves to (max_epochs - 100)
+    - period: 20        # eval every 20 epochs for the final phase
+
+
+# ── Selector temperature schedule ─────────────────────────────────────────
+# When enabled, train.py's _resolve_selector_temperature_schedule() auto-
+# computes temperature_warmup_steps and temperature_anneal_steps from
+# total optimizer steps and writes them into
+# model.config.pooling_config.selector_kwargs at runtime.
+# Only applies when selection_method='learned'.
+#
+# The decay shape is controlled by model.config.pooling_config.selector_kwargs.temperature_schedule.
+# Supported values: 'cosine' (default), 'linear', 'constant'.
+#   cosine: T_min + (T_init - T_min) * 0.5 * (1 + cos(π * progress))
+#   linear: T_init + progress * (T_min - T_init)
+#   constant: T_init (ignores anneal window)
+selector_temperature_schedule:
+  enabled: true
+  warmup_ratio: 0.02       # Warmup for 2% of total optimizer steps (constant temperature).
+  anneal_ratio: 0.60       # Anneal across 60% of remaining steps (decay to temperature_min).
+  warmup_steps: null       # Explicit override (takes precedence over warmup_ratio if non-null).
+  anneal_steps: null       # Explicit override (takes precedence over anneal_ratio if non-null).
+
+
+# Model diagnostics controls (aggregation, recording, plotting).
+# When `enabled: false`, trainer skips selector diagnostics aggregation,
+# JSONL recording, and selector diagnostic plotting.
+diagnose_model:
+  enabled: true
+  diagnose_selector_every_n_epochs: ${trainer.eval_every_n_epochs}  # Heavy selector diagnostics cadence (0 disables heavy diagnostics)
+  # selector_sampling_max_network_plots: 4  # Legacy key for sampling-heatmap cap (prefer plot_sampling_heatmap.max_network_plots)
+  selector_summary_max_network_rows: -1  # Max per-network rows written to selector_diagnostic_summaries.jsonl (-1 = all, 0 = disable)
+  plot_sampling_heatmap:
+    # Plot selector sampling-phase heatmaps from eval diagnostics:
+    # selection_given_available_by_level vs probe_timesteps for each network.
+    enabled: true              # Toggle selector_sampling_* heatmap generation.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 = every eval event.
+    max_network_plots: 2       # Per-eval network cap (-1 = all, 0 = none).
+  plot_node_stats:
+    # Plot per-network node-level selector statistics (heavy diagnostics):
+    # per-node selection frequency summaries and selector score/soft-mask stats.
+    enabled: false              # Toggle selector_node_stats_* plots.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 -> heavy cadence fallback.
+    max_network_plots: 2      # Per-epoch network cap (-1 = all, 0 = none).
+  plot_hard_mask:
+    # Plot per-network hard-mask diagnostics (heavy diagnostics):
+    # node-wise binary selection-mask means by selector level.
+    enabled: false              # Toggle selector_hard_mask_* plots.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 -> heavy cadence fallback.
+    max_network_plots: 2      # Per-epoch network cap (-1 = all, 0 = none).
+  plot_freq_evolution:
+    # Plot epoch-to-epoch evolution of per-node selection frequency (EMA)
+    # from selector_diagnostic_summaries.jsonl for each tracked network.
+    enabled: true              # Toggle selector_freq_evolution_* plots.
+    plot_every_n_epochs: null     # Rendering cadence in epochs.
+    max_network_plots: 2      # Per-render network cap (-1 = all, 0 = none).
+  plot_scalar_series:
+    # Plot selector scalar time-series from selector_diagnostic_summaries.jsonl:
+    # global/per-level curves such as temperature, entropy, and aux terms.
+    enabled: true              # Toggle selector scalar-series plots.
+    plot_every_n_epochs: 5     # Rendering cadence in epochs.
+
+
+use_amp: True

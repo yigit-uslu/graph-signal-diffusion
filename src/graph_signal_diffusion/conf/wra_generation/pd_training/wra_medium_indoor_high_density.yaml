@@ -1,0 +1,25 @@
+# @package _global_
+# PD expert training config for the wra_medium_indoor_high_density scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd \
+#               --config-name=pd_training/wra_medium_indoor_high_density
+#
+# r_min = 0.6 is a moderate constraint, calibrated from channel_analysis output:
+#   r_min_easy: 0.18  |  r_min_challenging: 0.86  |  r_min_moderate: 1.15
+# Full-power rates drop ~5 % vs wra_medium due to the raised noise floor.
+
+defaults:
+  - /scenario/wra_medium_indoor_high_density
+  - /pd_training/defaults
+  - _self_
+
+training:
+  batch_size: 32
+  max_epochs: 10000
+
+  r_min: 0.6  # moderate; see header for channel_analysis reference values
+
+  alpha_dual: 0.1
+  convergence_patience: 500
+
+  # Collect samples only at the end of training.
+  sample_collection_interval: .inf

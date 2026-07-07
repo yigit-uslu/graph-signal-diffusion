@@ -1,0 +1,45 @@
+# @package _global_
+# Default values shared across all WRA scenarios.
+# Override per-scenario fields (name, dataset, channel) in each scenario YAML.
+
+# Random seed for reproducibility
+seed: 42
+
+# Device configuration (null = auto-detect)
+device: null
+
+# Dataset fields common to all scenarios
+dataset:
+  num_timesteps: 500  # Number of channel timesteps per network
+  t_chunk: null       # null = use full num_timesteps; set smaller for random consecutive chunking per __getitem__
+
+# Channel parameters shared across all scenarios.
+# Override channel.version and channel.max_recursion_depth per-scenario as needed.
+channel:
+  version: v3                        # Default channel model version (wra_small overrides to v2)
+  min_tx_tx_distance: 35.0           # Minimum TX-TX separation in metres
+  min_tx_rx_distance: 10.0           # Minimum TX-RX distance in metres
+  max_tx_rx_distance: 70.0           # Maximum TX-RX distance in metres
+  path_loss_exponent_short: 2.0      # Dual-slope path loss exponent for d ≤ 100 m
+  path_loss_exponent_long: 4.0       # Dual-slope path loss exponent for d > 100 m
+  shadowing_std: 7.0                 # Log-normal shadowing std in dB
+  carrier_freq: 2.4e9                # Carrier frequency in Hz (affects Doppler)
+  speed: 1.0                         # Mobility speed in m/s
+  num_fading_paths: 100              # Sum-of-sinusoids Rayleigh fading paths
+  delta_t: 0.01                      # Time step in seconds (10 ms)
+  max_deployment_attempts: 100      # Max placement attempts during network generation
+  max_recursion_depth: 3             # V3 recursive subdivision depth
+
+# System parameters (shared across all current scenarios)
+system:
+  P_max_dBm: 10.0           # Maximum transmit power in dBm
+  bandwidth_Hz: 10e6        # Bandwidth in Hz
+  noise_psd_dBm_Hz: -174.0  # Noise PSD in dBm/Hz
+
+# Human-readable label for logging / output directories.
+# Interpolations resolve lazily from the fully composed config, including CLI overrides.
+channel_config_name: s_${seed}_D_${dataset.num_networks}_N_${dataset.n_links}_R_${dataset.deployment_range}_cv_${channel.version}
+
+# Content-addressed cache key — uniquely identifies the channel distribution.
+# All fields that affect the generated channel data must appear here.
+channel_cache_key: ${wra_channel_cache_key:${seed},${dataset.num_networks},${dataset.n_links},${dataset.deployment_range},${channel.version},${channel.min_tx_tx_distance},${channel.min_tx_rx_distance},${channel.max_tx_rx_distance},${channel.path_loss_exponent_short},${channel.path_loss_exponent_long},${channel.shadowing_std},${channel.carrier_freq},${channel.speed},${channel.num_fading_paths},${channel.delta_t},${channel.max_deployment_attempts},${channel.max_recursion_depth}}

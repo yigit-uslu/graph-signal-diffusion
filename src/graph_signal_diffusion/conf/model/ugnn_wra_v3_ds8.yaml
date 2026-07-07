@@ -1,0 +1,43 @@
+# @package model
+defaults:
+  - ugnn_wra_v3_ds4
+  - _self_
+
+# WRA analog of ugnn_sp500_v3_ds8, following the sociable-frigatebird-619
+# EFFECTIVE backbone (a small 3-level model), NOT the SP500 4-level [1,2,2,2]
+# base. Downsamples by 2 at EVERY level (gamma=[2,2,2]) -> 8x bottleneck
+# compression, with StridedTAGConv stride capped at 2.
+#
+# Node counts (WRA, N=400):
+#   L0 (gamma=2): GNN@400, pool -> 200
+#   L1 (gamma=2): GNN@200, pool -> 100
+#   L2 (gamma=2): GNN@100, pool -> 50
+#   Bottleneck:   2-layer GNN@50  (~12.5% of graph, 8x compression)
+#
+# NON-TEMPORAL ONLY: the SP500 ds8's per-layer temporal-mixer self-attention is
+# deliberately omitted — WRA is single-snapshot (model_in_timesteps=1), so any
+# mixing over a time axis is inert. The conditioning encoder likewise stays in
+# its WRA (static, collapsed) mode inherited from ugnn_wra.
+#
+# Diffs vs ugnn_wra_v3_ds4 (which sophisticated-oarfish-9 ran as a 3-level
+# gamma=[1,2,2] / 4x model via launcher overrides):
+#   - channel_multipliers: [1,1,1]   (3 uniform levels; explicit)
+#   - pooling_config.gamma: [2,2,2]  (pool at level 0 too -> 8x vs 4x)
+#   - gnn_config.max_gnn_stride: 2   (cap StridedTAGConv polynomial reach)
+#   - gnn_config.dropout: 0.10       (vs 0.05; ds8 finding widened the
+#                                     predictive distribution)
+#   - num_bottleneck_layers: 2       (vs 3; the 50-node bottleneck is small
+#                                     enough that extra mixing over-smooths)
+name: ugnn_wra_v3_ds8
+
+config:
+  channel_multipliers: [1, 1, 1]   # 3 uniform levels (matches gamma length)
+
+  gnn_config:
+    dropout: 0.1
+    max_gnn_stride: 2              # cap StridedTAGConv stride at 2
+
+  pooling_config:
+    gamma: [2, 2, 2]              # downsample by 2 at every level (8x compression)
+
+  num_bottleneck_layers: 2

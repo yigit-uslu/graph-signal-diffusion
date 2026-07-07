@@ -1,0 +1,1 @@
+from graph_signal_diffusion.datasets.sp100.datamodule import SP100Builder  # noqa: F401

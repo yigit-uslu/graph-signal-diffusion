@@ -1,0 +1,42 @@
+# @package model
+defaults:
+  - ugnn
+  - _self_
+
+# UGNN without downsampling for stock price forecasting v2 on SP500/SP500-cleaned.
+# Inherits shared defaults from ugnn.yaml.
+# Enables temporal mixer and richer conditioning temporal encoder
+# for multi-step temporal data (T_cond=10 or 20, T=5).
+name: ugnn_sp500_v2
+
+config:
+  # Enable temporal mixing in GNN layers
+  gnn_config:
+    temporal_mixer:
+      enabled: true
+      schedule: per_layer
+      kernel_size: 3 # main signal has $T=5 or T=10$ typically.
+      causal: true # Causal temporal mixing for forecasting.
+      use_pointwise: true
+      dilations: null
+
+  # Richer conditioning temporal encoder for longer observation windows
+  embedding_config:
+    cond:
+      shared_encoder:
+        temporal:
+          hidden_channels: [32, 32]
+          num_layers: 2
+          mixer:
+            kernel_size: 5 # Larger kernel to cover longer temporal context (T_cond=10 or 20) vs T=10 or 5.
+            causal: true
+            use_pointwise: true
+          output:
+            mode: static
+            static:
+              pooling:
+                method: ema # Exponential moving average pooling to summarize conditioning temporal features.
+                ema:
+                  alpha_init: 0.8
+      block_fusion:
+        mode: concat

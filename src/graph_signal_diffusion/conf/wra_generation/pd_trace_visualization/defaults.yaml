@@ -1,0 +1,264 @@
+# @package _global_
+# Default configuration for post-training trace dynamics visualization.
+#
+# Reads tracked_network_trace.jsonl from a PD training run and produces
+# per-network multi-panel figures showing power, rate, dual, and slack
+# evolution for selected receivers.
+#
+# Compose into per-scenario configs via:
+#   defaults:
+#     - /pd_trace_visualization/defaults
+#     - _self_
+
+# -- Visualization mode ------------------------------------------------------
+# "full"  = 4-panel column (power, rates, dual, slack + scatter)
+# "row"   = two-column (dual+slack stacked | 2×2 scatter grid)
+# "both"  = produce both figures per network
+visualization_mode: full
+
+# -- Input -------------------------------------------------------------------
+input_dir: ???  # PD training output directory (contains tracked_network_trace.jsonl)
+trace_filename: tracked_network_trace.jsonl  # JSONL file name inside input_dir
+
+# -- Receiver selection ------------------------------------------------------
+receiver_selection:
+  mode: auto          # "auto" = algorithmic selection; "explicit" = use receiver_indices
+  receiver_indices: [0, 1]  # used when mode=explicit; override on the CLI as needed
+  seed: null                # RNG seed for reproducible receiver selection & subsampling (null = non-deterministic)
+
+  # Auto-selection strategy (mode=auto only):
+  #   "top_dual_var"     — rank by dual multiplier variance.
+  #   "top_primal_var"   — rank by normalized power variance.
+  #   "top_combined_var" — rank by sum of normalized dual and primal variance ranks.
+  #   "top_dual_mean"    — rank by temporal mean of dual multipliers.
+  #   "top_primal_mean"  — rank by temporal mean of power allocations.
+  #   "bottom_rate_mean" — rank by worst (lowest) mean ergodic rate (most constrained first).
+  #   "neg_corr_pair"    — variance + correlation-aware composite scoring.
+  auto_strategy: neg_corr_pair
+
+  # Quantile-based receiver groups.
+  # Each group selects `count` receivers from a quantile range of the variance
+  # ranking (1.0 = highest variance, 0.0 = lowest).  Receivers are sampled
+  # uniformly at random within each band.  Each group gets its own colour palette
+  # and a configurable number of scatter-plot pairs.
+  # Optional `dual_count` limits how many receivers appear on the dual panel
+  # (defaults to `count` if omitted; scatter pairs still use all `count`).
+  groups:
+    - quantile: [0.75, 1.0]
+      count: 2
+      palette: PuRd
+      palette_range: [0.35, 0.85]
+      scatter_pairs: 2
+    - quantile: [0.0, 0.25]
+      count: 2
+      palette: YlGnBu
+      palette_range: [0.3, 0.85]
+      scatter_pairs: 2
+
+  # --- neg_corr_pair settings (ignored by top_*_var strategies) ---
+  neg_corr_pair:
+    variance_quantile: 0.5      # keep top fraction by configured variance sources
+    interference_weight: 0.0    # weight of mutual interference in pair score (0 = pure correlation)
+    # Which metrics feed into candidate filtering.
+    # Receiver qualifies if it's above the variance_quantile threshold in ANY source.
+    #   "dual_var"    — dual multiplier variance (high fluctuation)
+    #   "primal_var"  — power allocation variance (high fluctuation)
+    #   "dual_mean"        — dual multiplier mean (persistently constrained)
+    #   "primal_mean"      — power allocation mean (persistently high-power)
+    #   "bottom_rate_mean" — lowest mean ergodic rate (most rate-starved receivers)
+    quantile_source:
+      - dual_var
+      - primal_var
+
+# -- Collection window -------------------------------------------------------
+# Number of final training epochs that constitute the "stationary" regime.
+# A vertical dashed line is drawn at (epoch_max - collection_window) on all
+# time-series panels.  Set to null to disable.
+collection_window: null
+
+# -- Overlay (data source for scatter panels, k=2 only) ---------------------
+# Overlay generated power samples on the 2D scatter panel.
+# Requires a generated_powers.npz file with per-network arrays:
+#   network_ids: int64[N]
+#   network_{id}_powers: float32[n_samples, n_receivers]
+overlay:
+  generated_powers_path: null   # path to generated_powers.npz; null = no overlay
+  marker: "x"
+  color: crimson
+  alpha: 0.5
+  marker_size: 30
+  label: Generated
+
+# -- Output ------------------------------------------------------------------
+output:
+  dir: null   # null = write figures into input_dir
+  format: pdf # pdf | png | svg
+
+# -- Plot style (truly global defaults) -------------------------------------
+# Every key here is consumed identically by both visualization modes.
+plot_style:
+  dpi: 300
+  linewidth: 2.0          # line width for smoothed / windowed curves
+  raw_linewidth: 1.0      # line width for raw (per-epoch) traces
+  alpha_raw: 0.35         # opacity of raw (unsmoothed) traces
+  grid_alpha: 0.3
+  grid_linestyle: "-"     # time-series panel grid linestyle
+  legend_fontsize: 12
+  title_fontsize: 14
+  label_fontsize: 14
+  tick_fontsize: 14
+  smoothing_window: 50    # moving-average window for raw traces
+
+  # Figure-level suptitle: "off" | "auto" | "explicit"
+  suptitle: "off"
+  suptitle_text: null     # used when suptitle=explicit
+  suptitle_fontsize: 13
+
+# -- Mode-specific overrides -------------------------------------------------
+# Settings that differ between full and row modes.
+modes:
+  full:
+    figsize: [12, 16]             # figure size for 4-panel column layout
+    scatter_colormap: viridis     # epoch-based colormap (full mode uses cmap)
+  row:
+    figsize: [20, 8]              # figure size for 2-column layout
+    legend_first_subplot_only: true  # only show overlay legend on first scatter sub-plot
+    slack_raw_color: tab:red
+    slack_avg_color: tab:blue
+    # Overlay colour (always used regardless of per-pair scatter colour).
+    overlay_color: darkorange
+
+# -- Per-panel configuration -------------------------------------------------
+# Shared across visualization modes (full, row, both).
+# Each panel owns ALL of its styling knobs: labels, titles, legend, and
+# any panel-specific visual parameters.
+# Label/title modes: "off" = hidden, "auto" = auto-generated, "explicit" = use *_text
+panels:
+  power:                              # full mode only: power allocation time-series
+    title: auto
+    title_text: null
+    ylabel: auto
+    ylabel_text: null
+    legend: auto
+
+  rates:                              # full mode only: ergodic rates + windowed averages
+    title: auto
+    title_text: null
+    ylabel: auto
+    ylabel_text: null
+    legend: auto
+
+  dual:                               # both modes: dual multiplier evolution
+    title: auto
+    title_text: null
+    ylabel: auto
+    ylabel_text: null
+    legend: auto
+    xscale: linear                    # "linear" | "log" | "compressed"
+    transient_compression: 4.0        # compression factor for transient phase (xscale=compressed only)
+    yscale: linear                    # "linear" | "log" | "symlog"
+    symlog_linthresh: 1.0             # linear threshold for symlog (linear below this, log above)
+    ymin: null                        # clamp y-axis lower bound (null = auto)
+    ymax: null                        # clamp y-axis upper bound (null = auto)
+    # Legend value display: "final" = λ=<last epoch>, "mean" = λ̄=<mean>, "off" = no value
+    legend_values: mean
+
+  slack:                              # both modes: constraint slack
+    xscale: linear                    # "linear" | "log" | "compressed"
+    transient_compression: 4.0        # compression factor for transient phase (xscale=compressed only)
+    title: auto
+    title_text: null
+    ylabel: auto
+    ylabel_text: null
+    xlabel: auto
+    xlabel_text: null
+    legend: auto
+    # Convention: "min" = minimization (slack = r_min − rate, positive = violated)
+    #             "max" = maximization (slack = rate − r_min, negative = violated)
+    # Raw data always uses min convention; "max" flips the sign at display time.
+    convention: min
+    # Scope of worst-slack and infeasibility-% computation:
+    #   "selected" = across selected top-k (+ bottom-k) receivers only
+    #   "network"  = across ALL receivers in the network
+    worst_scope: network
+    # When worst_scope=network, use a percentile instead of absolute worst
+    # to be robust to outliers. null or 0 = absolute worst (min/max).
+    # E.g., 1.0 means the 1st-percentile worst (≈4th worst out of 400 nodes).
+    worst_percentile: null
+    zero_line_style: "--"             # y=0 feasibility reference line
+    zero_line_color: black
+    zero_line_width: 1.0
+    zero_line_alpha: 1.0
+    feasible_color: green             # shading for feasible slack region
+    feasible_alpha: 0.04
+    infeasible_color: red             # shading for infeasible slack region
+    infeasible_alpha: 0.04
+    # Right y-axis: infeasibility percentage (row mode only).
+    infeasibility_line_color: firebrick
+    infeasibility_line_alpha: 0.8
+    infeasibility_line_width: 1.2
+    infeasibility_ylabel: auto        # "off" | "auto" | "explicit"
+    infeasibility_ylabel_text: null
+    # Collection-window boundary line & shading (also used by dual panel).
+    cw_line_color: darkorange
+    cw_line_alpha: 0.8
+    cw_shade_color: gold
+    cw_shade_alpha: 0.2   # 0.06
+
+  scatter:                            # both modes: 2D power scatter
+    # -- Labels & title --
+    title: auto
+    title_text: null
+    xlabel: auto
+    xlabel_text: null
+    ylabel: auto
+    ylabel_text: null
+    legend: auto                      # controls overlay legend visibility
+
+    # -- Layout (row mode) --
+    column_wspace: 0.15            # horizontal gap between left (dual+slack) and right (scatter) columns
+    hspace: 0.15                   # vertical gap within the 2×2 scatter grid
+    wspace: -0.15                   # horizontal gap within the 2×2 scatter grid
+
+    # -- Data display --
+    transient_display: both           # "both" | "collection_only"
+    transient_scope: all              # "all" = entire transient; "early" = first collection_window epochs only
+    axis_range: auto                  # "auto" | "unit"
+    n_pairs: 4                        # total scatter pairs (capped by grid size)
+    max_collection_points: null       # cap on scatter points from stationary regime (null = no cap)
+    max_transient_points: null        # cap on scatter points from transient regime (null = no cap)
+    subsample_method: stride          # "stride" = uniform spacing, "random" = random subset
+
+    # -- Marker styling --
+    collection_marker_size: 50
+    transient_marker_size: 20
+    transient_alpha: 0.15
+    collection_alpha: 0.6
+
+    # -- Edge styling (gives each dot a crisp outline) --
+    collection_edgecolor: navy
+    transient_edgecolor: "none"
+    collection_linewidth: 0.5
+    transient_linewidth: 0.0
+
+    # -- Axis bounds (applied when axis_range=unit) --
+    axis_padding: 0.05               # extend axes by this amount beyond [0,1]
+    feasibility_bounds: true          # draw lines at 0 and 1 on both axes
+    bounds_color: gray
+    bounds_linestyle: ":"
+    bounds_alpha: 0.5
+    bounds_linewidth: 1.5
+
+    # -- Grid & ticks --
+    grid_linestyle: "--"
+    tick_format: "%.2f"               # tick label format string (null = matplotlib default)
+
+    # -- Legend placement --
+    legend_loc: upper right
+
+hydra:
+  run:
+    dir: outputs/trace_viz/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/trace_viz/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

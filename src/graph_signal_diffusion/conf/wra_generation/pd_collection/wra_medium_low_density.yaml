@@ -1,0 +1,14 @@
+# @package _global_
+# PD sample collection config for the wra_medium_low_density scenario.
+# Use with:
+#   python -m graph_signal_diffusion.cli.wra.build_diffusion_dataset \
+#     --config-name=pd_collection/wra_medium_low_density \
+#     input_dir=/path/to/pd_run
+
+defaults:
+  - /pd_training/wra_medium_low_density
+  - /pd_collection/defaults
+  - _self_
+
+# All collection parameters match pd_collection/defaults exactly.
+# No overrides needed for wra_medium_low_density; provide ``input_dir=...`` on the CLI.

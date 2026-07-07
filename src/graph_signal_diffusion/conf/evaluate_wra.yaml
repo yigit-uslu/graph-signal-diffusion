@@ -1,0 +1,54 @@
+# @package _global_
+#
+# Evaluation config for a single WRA baseline (Full-Power, AP, WMMSE, or Diffusion).
+#
+# Usage — Full-Power (no checkpoint):
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       --config-name evaluate_wra \
+#       baseline=fp \
+#       dataset.datasets='["small/pdc_npz_<hash>"]'
+#
+# Usage — WMMSE (no checkpoint):
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       --config-name evaluate_wra \
+#       baseline=wmmse \
+#       dataset.datasets='["small/pdc_npz_<hash>"]'
+#
+# Usage — Average-Power (no checkpoint):
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       --config-name evaluate_wra \
+#       baseline=ap \
+#       dataset.datasets='["small/pdc_npz_<hash>"]'
+#
+# Usage — Diffusion model (requires checkpoint):
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       --config-name evaluate_wra \
+#       baseline=diffusion \
+#       dataset.datasets='["small/pdc_npz_<hash>"]' \
+#       checkpoint_path=outputs/.../best_model.pt
+#
+defaults:
+  - dataset: wra
+  - task: wireless_resource_allocation
+  - baseline: fp
+  - _self_
+
+checkpoint_path: null  # Path to trained model checkpoint (diffusion baseline only)
+seed: 0
+
+# Set structural_metrics to false for WRA because they are not currently implemented for this task.
+baseline:
+  evaluation:
+    structural_metrics: false
+
+# Per-split batch limits for evaluation (null = use all batches)
+eval_splits:
+  test: null
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    dir: outputs/${task.name}-${dataset.name}/${baseline.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${task.name}-${dataset.name}/${baseline.name}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

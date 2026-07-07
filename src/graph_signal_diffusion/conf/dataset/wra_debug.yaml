@@ -1,0 +1,12 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+name: wra
+scenario: debug
+datasets: ["debug/wrpc_v1_primal_history_k200_h65095210ff19"]
+
+# Smaller batches for the debug scenario (16 networks, ~3200 train samples)
+batch_size: 128
+batch_size_val: 100 # unique_networks_per_batch = ceil(batch_size_val / n_samples_per_input

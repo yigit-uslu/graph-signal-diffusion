@@ -1,0 +1,108 @@
+# @package trainer
+# Shared trainer defaults.
+# Task-specific trainers (trainer_sp500.yaml, trainer_wra.yaml) inherit from this
+# and override epoch counts, eval frequency, n_samples, and best_model metrics.
+name: gdm
+max_epochs: 1000
+batch_size: ${oc.select:dataset.batch_size, 32}  # default to 32 if not specified in dataset config
+optimizer:
+  name: adam
+  learning_rate: 0.001  # We bumped this up from 1e-4 to 1e-3
+  betas: [0.9, 0.999]   # Used by Adam/AdamW only
+  weight_decay: 0.0     # Used by Adam/AdamW/SGD
+  momentum: 0.9         # Used by SGD only
+lr_scheduler:
+  enabled: false           # Backward compatibility: keep constant LR unless explicitly enabled
+  name: cosine             # cosine | linear | step
+  warmup_ratio: 0.01       # Warmup for 1% of total optimizer steps (all schedulers)
+  min_lr_ratio: 0.05       # Final LR floor as a ratio of peak LR (all schedulers)
+  # cosine / linear — controls when the decay finishes (ignored by step):
+  decay_fraction: 1.0      # Fraction of total_steps by which the decay completes;
+                           # e.g. 0.5 finishes the curve at 50% of training,
+                           # then holds at min_lr_ratio for the remaining epochs.
+  # step only (ignored by cosine / linear):
+  # step_size_ratio: 0.1   # Fraction of post-warmup steps between each multiplicative drop
+  # gamma: 0.5             # Multiplicative factor applied at each drop
+selector_temperature_schedule:
+  enabled: false           # Backward compatibility: do not auto-resolve selector warmup/anneal steps
+  warmup_ratio: 0.01       # Warmup for 1% of total optimizer steps
+  anneal_ratio: 0.40       # Anneal across 40% of total optimizer steps
+  warmup_steps: null       # Optional override; if set, overrides warmup_ratio
+  anneal_steps: null       # Optional override; if set, overrides anneal_ratio
+device: cuda
+max_grad_norm: 1.0         # set to float('inf') for no clipping
+log_every_n_steps: 50      # Just prints per-step training loss, grad_norm etc. to the console.
+eval_every_n_epochs: 10    # Legacy fallback (used when eval_schedule is absent); prefer eval_schedule below.
+
+# Evaluation scheduling. Supports three types:
+#   uniform    : eval every `period` epochs  (equivalent to eval_every_n_epochs)
+#   multi_phase: different period per training phase (dense → sparse → dense)
+#   cosine     : sin²-shaped density, dense at start & end, sparse at midpoint
+# When this block is absent (e.g., in custom configs), the trainer falls back
+# to UniformEvalSchedule(eval_every_n_epochs).
+eval_schedule:
+  type: uniform
+  period: 10
+  eval_on_first_epoch: false
+  eval_on_last_epoch: true
+
+max_num_val_batches: 1          # Max batches per val evaluation call (-1 = all batches); default 1 for fast per-epoch evals
+max_num_train_val_batches: 1    # Max batches per train-val evaluation call (-1 = all batches); default 1 for fast per-epoch evals
+max_num_test_batches: -1        # Max batches for final test evaluation (-1 = all batches)
+run_final_test: true            # Whether to run final test evaluation after training loop.
+measure_forward_speed: false    # Time diffusion.training_loss forward path during training.
+forward_speed_warmup_steps: 5   # Skip timing for the first N train batches each epoch.
+forward_speed_max_steps: -1     # Max timed steps/epoch (-1 = all eligible steps).
+n_samples_per_input: 10    # Number of samples to generate per input instance during evaluation
+save_checkpoint_every_n_epochs: 5000  # Crash-recovery only; best_model handles model selection   
+use_amp: false             # Enable mixed precision
+compile: false             # Enable torch.compile() for training
+log_level: INFO            # Global logging level (DEBUG/INFO/WARNING/ERROR/CRITICAL)
+
+# Model diagnostics controls (aggregation, recording, plotting).
+# When `enabled: false`, trainer skips selector diagnostics aggregation,
+# JSONL recording, and selector diagnostic plotting.
+diagnose_model:
+  enabled: true
+  diagnose_selector_every_n_epochs: 20  # Heavy selector diagnostics cadence (0 disables heavy diagnostics)
+  selector_sampling_max_network_plots: 4  # Legacy key for sampling-heatmap cap (prefer plot_sampling_heatmap.max_network_plots)
+  selector_summary_max_network_rows: -1  # Max per-network rows written to selector_diagnostic_summaries.jsonl (-1 = all, 0 = disable)
+  plot_sampling_heatmap:
+    # Plot selector sampling-phase heatmaps from eval diagnostics:
+    # selection_given_available_by_level vs probe_timesteps for each network.
+    enabled: true              # Toggle selector_sampling_* heatmap generation.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 = every eval event.
+    max_network_plots: 4       # Per-eval network cap (-1 = all, 0 = none).
+  plot_node_stats:
+    # Plot per-network node-level selector statistics (heavy diagnostics):
+    # per-node selection frequency summaries and selector score/soft-mask stats.
+    enabled: true              # Toggle selector_node_stats_* plots.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 -> heavy cadence fallback.
+    max_network_plots: -1      # Per-epoch network cap (-1 = all, 0 = none).
+  plot_hard_mask:
+    # Plot per-network hard-mask diagnostics (heavy diagnostics):
+    # node-wise binary selection-mask means by selector level.
+    enabled: true              # Toggle selector_hard_mask_* plots.
+    plot_every_n_epochs: null  # Rendering cadence; null/0 -> heavy cadence fallback.
+    max_network_plots: -1      # Per-epoch network cap (-1 = all, 0 = none).
+  plot_freq_evolution:
+    # Plot epoch-to-epoch evolution of per-node selection frequency (EMA)
+    # from selector_diagnostic_summaries.jsonl for each tracked network.
+    enabled: true              # Toggle selector_freq_evolution_* plots.
+    plot_every_n_epochs: 5     # Rendering cadence in epochs.
+    max_network_plots: -1      # Per-render network cap (-1 = all, 0 = none).
+  plot_scalar_series:
+    # Plot selector scalar time-series from selector_diagnostic_summaries.jsonl:
+    # global/per-level curves such as temperature, entropy, and aux terms.
+    enabled: true              # Toggle selector scalar-series plots.
+    plot_every_n_epochs: 5     # Rendering cadence in epochs.
+
+# Best-model checkpointing: saves top-K models based on EMA-smoothed composite
+# validation metric.  Disable by setting enabled: false.
+# Override trainer.best_model.metrics in task-specific trainer configs.
+best_model:
+  enabled: true
+  top_k: 5                         # Keep top 5 best checkpoints
+  ema_alpha: 0.2                   # Exponential moving average decay (higher = more recent bias)
+  min_warmup_evals: 3              # Minimum evals before tracking (allows metrics to stabilize)
+  metrics: []                      # Override in trainer_sp500.yaml / trainer_wra.yaml

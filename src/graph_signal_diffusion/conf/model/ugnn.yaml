@@ -1,0 +1,126 @@
+# @package model
+# Shared default UGNN configuration.
+# Contains all hyperparameters common to both WRA and SP500-v2 experiments.
+# Task-specific configs (ugnn_wra.yaml, ugnn_sp500_v2.yaml) inherit from this
+# and override only what differs.
+name: ugnn
+_target_: graph_signal_diffusion.models.ugnn.UGNN
+
+config:
+  _target_: graph_signal_diffusion.models.ugnn.UGNNConfig
+
+  # Input / output channels
+  in_channels: 1
+  out_channels: 1
+
+  # Core architecture
+  base_channels: 64
+  channel_multipliers: [1, 1, 1, 1]
+
+  # GNN layer configuration
+  gnn_config:
+    _target_: graph_signal_diffusion.models.ugnn.GNNConfig
+    K: 2                       # Graph filter order (0, 1, ..., K)-hops in each GNN layer
+    num_layers: 2
+    norm_type: 'layer'
+    dropout: 0.05
+    activation: 'relu'
+    normalize: false
+    use_strided_conv: false    # No strided convolutions by default
+    use_pre_activation: false
+    # Temporal mixer (disabled by default; SP500 enables it)
+    temporal_mixer:
+      enabled: false
+      schedule: per_layer       # per_layer | per_block | off
+      kernel_size: 3
+      causal: true
+      use_pointwise: false
+      gated: false              # WaveNet-style tanh(filter)*sigmoid(gate) activation
+      dilations: null
+      attention:
+        enabled: false          # Multi-head self-attention over T (bidirectional)
+        num_heads: 4
+        dropout: 0.0
+        max_timesteps: null     # null = no positional embedding; set to future_window to enable
+    # Pointwise sparse execution policy for node-compacted paths.
+    # - off: always dense pointwise ops
+    # - auto: packed when batch-average active ratio < threshold
+    # - on: always packed when active_mask exists
+    pointwise_sparse_mode: auto  # off | auto | on
+    pointwise_sparse_threshold: 0.75
+    # Cap on effective GNN stride (gamma). null = no cap (backward compatible).
+    # When set, limits gamma=min(stride_pre, max_gnn_stride) to prevent
+    # GNN receptive field from exceeding graph diameter at deep levels.
+    max_gnn_stride: null
+
+  # Pooling / downsampling (identity by default) -> UGNN is effectively a deep GNN with skip connections.
+  pooling_config:
+    _target_: graph_signal_diffusion.models.ugnn.PoolingConfig
+    gamma: [1, 1, 1, 1]       # No downsampling; must match channel_multipliers length
+    pool_K: 0
+    selection_method: 'stride' # Not used since pool_K=0
+    selector_hidden_norm_type: 'layer'
+    selector_kwargs: null
+    # NodeSelector packed score path (used when selection_method='learned').
+    selector_packed_score_mode: 'off'   # off | auto
+    selector_packed_score_threshold: 0.5
+    # Cap on effective pool stride_input. null = no cap (backward compatible).
+    # When set, limits stride_input=min(stride_pre, max_pool_stride) for
+    # neighborhood aggregation in pooling.
+    max_pool_stride: null
+
+  # Decoder upsampling
+  upsampling_config:
+    _target_: graph_signal_diffusion.models.ugnn.UpsamplingConfig
+    method: 'zero'
+
+  # Embeddings
+  embedding_config:
+    _target_: graph_signal_diffusion.models.ugnn.EmbeddingConfig
+    time_embed_dim: 128
+    num_timesteps: ${oc.select:diffusion.num_timesteps, 500}
+    cond:
+      channels: ${oc.select:dataset.model_cond_channels, null}
+      embed_dim: 128
+      shared_encoder:
+        temporal:
+          # Effective in BOTH static and time_varying output modes.
+          hidden_channels: [32]
+          num_layers: 1
+          mixer:
+            kernel_size: 3
+            causal: true
+            use_pointwise: false
+            dilations: null
+          output:
+            mode: static  # static | time_varying
+            static:
+              pooling:
+                method: last  # max | mean | last | ema | attention
+                ema:
+                  alpha_init: 0.8
+            time_varying:
+              method: learned_projection
+              learned_projection:
+                source_timesteps: null
+                target_timesteps: null
+      block_fusion:
+        mode: concat  # concat | cross_attention | film
+        projection:
+          type: linear
+          per_level: true
+        cross_attention:
+          heads: 4
+          dropout: 0.0
+          bias: true
+          causal: false
+    # Checkpoint note:
+    # - Strict BC is guaranteed for static mode checkpoints.
+    # - Historical checkpoints in this project were trained with static mode.
+    # - time_varying mode introduces projection params and is intended for new runs.
+
+  num_bottleneck_layers: 1
+  skip_connection_mode: 'concat'
+  # Store encoder skip tensors in compact packed form for masked levels.
+  # Keep false as conservative default; enable in experiments explicitly.
+  compact_skip_cache: false

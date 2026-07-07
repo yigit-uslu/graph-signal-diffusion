@@ -1,0 +1,37 @@
+# @package _global_
+# WRA medium indoor high-density scenario.
+#
+# A modification of wra_medium that keeps the same network geometry but raises the
+# effective noise floor to model a dense indoor 2.4 GHz ISM environment:
+#   - Same 200-link, 3200 m deployment as wra_medium
+#   - Same LoS TX-RX pairing geometry (10–70 m)
+#   - ISM-band ambient interference modelled as a raised noise floor (−150 dBm/Hz)
+#
+# Physical motivation: factory floor or open-plan office at 2.4 GHz.
+# Ambient WiFi/BT traffic raises the effective noise floor ~24 dB above thermal.
+# Because the existing channel cache is unchanged, no channel regeneration is needed;
+# only a new PD training run is required.
+#
+# Effect on power allocation: N/I ≈ 0.2 at full power (mixed noise/interference
+# regime), forcing the PD optimizer to use 3–30 % of P_max instead of < 0.1 %.
+#
+# Channel analysis results (seed 42, 128 networks):
+#   mean-of-means: 2.46  |  10th-pct: 0.32  |  25th-pct: 0.86  |  median: 1.98
+#   r_min_easy: 0.18  |  r_min_challenging: 0.86  |  r_min_moderate: 1.15
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium_indoor_high_density
+
+dataset:
+  num_networks: 128
+  n_links: 200
+  deployment_range: 3200.0  # metres — identical to wra_medium
+
+channel:
+  max_deployment_attempts: 1000
+
+system:
+  noise_psd_dBm_Hz: -150.0   # dBm/Hz — ISM-band ambient interference (+24 dB over thermal)

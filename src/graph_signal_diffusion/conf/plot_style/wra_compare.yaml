@@ -1,0 +1,453 @@
+# @package plot_style
+#
+# Centralized plotting style defaults for WRA baseline comparison.
+# Phase-1 goal: map all currently hardcoded plotting constants.
+
+global:
+  backend: Agg
+  # Applied via matplotlib.rcParams.update(...)
+  rc_params:
+    text.usetex: false
+    font.family: serif
+  default_dpi: 150
+  figure_sizes:
+    regular: [10.0, 6.0]
+    wide: [14.0, 5.0]
+    cdf: [10.0, 7.0]
+    network_evolution: [12.0, 14.0]
+    network_scatter_grid: [20.0, 8.0]
+    percentile_strip: [24.0, 5.0]
+    radar: [10.0, 10.0]
+    selector_correlation: [12.0, 8.0]
+  grid:
+    alpha: 0.3
+    linestyle: "--"
+  legend:
+    framealpha: 0.9
+
+baseline:
+  display_aliases:
+    expert: Expert
+    fp: FP
+    ap: AP
+    grw: GRW
+    wmmse: WMMSE
+    diffusion: U-GNN
+    ddpm: DDPM
+    ddim: DDIM
+    mlp: MLP
+    gnn: GNN
+    lstm: LSTM
+    rnn: RNN
+    cnn: CNN
+    arima: ARIMA
+  # Explicit cross-baseline colors for WRA plots.
+  colors:
+    expert: steelblue
+    diffusion: "#ff7f0e"
+    fp: darkgreen
+    ap: teal
+    wmmse: magenta
+    real: tab:orange
+    generated: tab:blue
+  # Fallback when a baseline is missing from explicit colors.
+  fallback_cycle:
+    - tab:blue
+    - tab:orange
+    - tab:green
+    - tab:red
+
+plots:
+  power_allocation_histogram:
+    enabled: true
+    bins: 60
+    dpi: 150
+    figure_size: [14.0, 5.0]
+    width_ratios: [1.2, 1.0]
+    x_padding: 0.01
+    full_power_reference:
+      x: 0.5
+      color: gray
+      linestyle: "--"
+      linewidth: 0.9
+      alpha: 0.7
+    real_distribution:
+      color: steelblue
+      alpha: 0.55
+      linewidth: 1.8
+    generated_distribution:
+      color: tab:orange
+      alpha: 0.50
+      linewidth: 1.8
+    cdf_gap:
+      color: mediumpurple
+      alpha: 0.25
+    fonts:
+      x_label_left: 10
+      x_label_right: 11
+      y_label: 11
+      title: 12
+      legend: 9
+
+  percentile_evolution_comparison:
+    enabled: true
+    dpi: 300
+    figure_size: [24.0, 5.0]
+    show_suptitle: false
+    suptitle_fontsize: 13
+    wspace: 0.20
+    expert_label: "Expert"
+    # Panel order for the three retained statistics (min panel removed):
+    # valid values map to {p1, p5, mean}.
+    panel_order: [P1, P5, Mean]
+    baseline_colors:
+      expert: steelblue
+      diffusion: "#ff7f0e"
+      fp: darkgreen
+      ap: magenta
+      wmmse: crimson
+    fallback_cycle:
+      - tab:blue
+      - tab:orange
+      - tab:green
+      - tab:red
+    marker_every: 5
+    # Supported: "bars", "band"
+    # Kept as "band" to match compare_baselines_wra historical config.
+    error_display: band
+    line_styles:
+      expert:
+        linewidth: 2.0
+        linestyle: "-"
+        marker: o
+        markersize: 4.0
+      baseline:
+        linewidth: 1.6
+        marker_other: o
+        marker_diffusion: s
+        markersize: 3.8
+      qos:
+        color: red
+        linestyle: "--"
+        linewidth: 1.6
+        alpha: 0.8
+        label_symbol: "f_{\\min}"
+    variability:
+      band_alpha: 0.18
+      band_linewidth: 0.0
+      bars:
+        elinewidth: 1.0
+        capsize: 2
+        alpha: 0.9
+        markerfacecolor: white
+        markeredgewidth: 1.0
+        linewidth: 0.0
+    fonts:
+      axis_label: 16
+      subplot_title: 16
+      legend: 14
+      tick: 16
+    grid:
+      alpha: 0.3
+
+  task_rate_cdf:
+    enabled: true
+    filename: ergodic_rates_cdf.pdf
+    dpi: 150
+    figure_size: [10.0, 7.0]
+    real_curve:
+      color: tab:orange
+      linewidth: 2.5
+      alpha: 0.9
+      linestyle: "-"
+    generated_curve:
+      color: tab:blue
+      linewidth: 2.5
+      alpha: 0.9
+      linestyle: "--"
+    r_min_line:
+      color: red
+      linestyle: ":"
+      linewidth: 2.0
+      alpha: 0.8
+    stats_box:
+      x: 0.98
+      y: 0.02
+      fontsize: 10
+      verticalalignment: bottom
+      horizontalalignment: right
+      bbox:
+        boxstyle: round
+        facecolor: white
+        alpha: 0.9
+        edgecolor: gray
+    fonts:
+      x_label: 13
+      y_label: 13
+      title: 15
+      title_weight: bold
+      label_weight: bold
+      legend: 11
+    legend:
+      loc: upper left
+      framealpha: 0.9
+    grid:
+      alpha: 0.3
+      linestyle: "--"
+    y_limits: [0.0, 1.05]
+    x_limits:
+      min_scale: 0.8
+      max_percentile: 95
+      max_scale: 1.1
+
+  task_rate_evolution:
+    enabled: true
+    max_networks_per_dataset: 5  # <=0 disables clamping
+    filename_template: rate_evolution_d{dataset_name}_n{network_id}.pdf
+    dpi: 150
+    figure_size: [12.0, 14.0]
+    rows: 3
+    real_curve:
+      color: tab:orange
+      linewidth: 2.5
+      marker: o
+      markersize: 6
+      alpha: 0.9
+    generated_curve:
+      color: tab:blue
+      linewidth: 2.5
+      marker: s
+      markersize: 6
+      alpha: 0.9
+      linestyle: "--"
+      capsize: 4
+      capthick: 1.5
+    r_min_line:
+      color: red
+      linestyle: ":"
+      linewidth: 2.0
+      alpha: 0.7
+    fonts:
+      x_label: 12
+      y_label: 12
+      subplot_title: 13
+      legend: 10
+      suptitle: 14
+      title_weight: bold
+      label_weight: bold
+    legend:
+      loc: best
+      framealpha: 0.9
+    grid:
+      alpha: 0.3
+      linestyle: "--"
+    x_limits:
+      left_margin: 0.5
+      right_margin: 0.5
+    suptitle:
+      y: 0.995
+
+  task_power_scatter:
+    enabled: true
+    max_networks_per_dataset: 5  # <=0 disables clamping
+    filename_template: power_allocation_scatter_d{dataset_name}_n{network_id}.pdf
+    dpi: 150
+    max_pairs: 10
+    subplot_grid: [2, 5]
+    figure_size: [20.0, 8.0]
+    random_pair_sampling: true
+    generated_scatter:
+      color: tab:blue
+      edgecolor: navy
+      alpha: 0.6
+      size: 50
+      linewidth: 0.5
+    real_scatter:
+      color: tab:orange
+      edgecolor: darkred
+      alpha: 0.6
+      size: 50
+      linewidth: 0.5
+    bounds_line:
+      color: gray
+      linestyle: ":"
+      alpha: 0.5
+      linewidth: 1.5
+    limits: [-0.05, 1.05]
+    tick_format: "%.2f"
+    fonts:
+      x_label: 10
+      y_label: 10
+      subplot_title: 11
+      legend: 8
+      correlation_text: 9
+      suptitle: 14
+      title_weight: bold
+    legend:
+      loc: upper right
+      first_subplot_only: true
+    correlation_text:
+      x: 0.05
+      y: 0.95
+      verticalalignment: top
+      horizontalalignment: left
+      bbox:
+        boxstyle: round
+        facecolor: white
+        alpha: 0.8
+    grid:
+      alpha: 0.3
+      linestyle: "--"
+    suptitle:
+      y: 0.995
+
+  selector_rate_correlation:
+    enabled: true
+    max_networks_per_dataset: 5  # <=0 disables clamping
+    filename_template: selector_rate_correlation_d{dataset_name}_n{network_id}.pdf
+    # Aggregate (deep-level selection freq vs ergodic rate POOLED across all
+    # networks): one figure per density, plus an optional global one.
+    aggregate:
+      enabled: true
+      global_enabled: true
+      num_bins: 15
+      min_networks: 1
+      filename_template_density: selector_rate_correlation_aggregate_d{dataset_name}.pdf
+      filename_template_global: selector_rate_correlation_aggregate_global.pdf
+    dpi: 150
+    figure_size: [12.0, 8.0]
+    height_ratios: [2.0, 1.25]
+    selection_curve:
+      color: tab:blue
+      linewidth: 1.8
+      marker: o
+      markersize: 3
+      y_label_color: tab:blue
+      y_limits: [-0.02, 1.02]
+    real_curve:
+      color: tab:orange
+      linewidth: 1.6
+      linestyle: "--"
+    generated_curve:
+      color: tab:green
+      linewidth: 1.4
+      linestyle: ":"
+    scatter:
+      color: tab:purple
+      size: 25
+      alpha: 0.75
+      edgecolors: none
+    legend:
+      loc: upper left
+      fontsize: 9
+      framealpha: 0.9
+    corr_text:
+      x: 0.99
+      y: 0.02
+      fontsize: 9
+      ha: right
+      va: bottom
+      bbox:
+        boxstyle: round
+        facecolor: white
+        alpha: 0.85
+        edgecolor: gray
+    fonts:
+      suptitle: 13
+      suptitle_weight: bold
+    grid:
+      alpha: 0.25
+      linestyle: "--"
+
+  comparison_bar:
+    enabled: true
+    figure_size: [10.0, 6.0]
+    palette: husl
+    bar_edgecolor: black
+    value_label_format: "{:.4f}"
+    value_label_fontsize: 10
+    y_label_fontsize: 12
+    title_fontsize: 14
+    title_fontweight: bold
+    x_tick_rotation: 45
+    x_tick_ha: right
+    grid_axis: y
+    grid_alpha: 0.3
+    dpi: 150
+
+  r_min_sweep:
+    enabled: true
+    dpi: 300
+    figure_size: [7.5, 5.0]
+    combined_figure_size: [24.0, 12.0]
+    line:
+      color: "#ff7f0e"
+      linewidth: 2.0
+      marker_native: "D"
+      marker_transfer: "o"
+      markersize: 8.0
+    qos_line:
+      color: red
+      linestyle: "--"
+      linewidth: 1.6
+      alpha: 0.8
+      label_symbol: "f_{\\min}"
+    overlay_percentiles:
+      - metric: rate_1pct_generated
+        label: p1
+      - metric: rate_5pct_generated
+        label: p5
+      - metric: rate_10pct_generated
+        label: p10
+    overlay_colors: ["#1f77b4", "#ff7f0e", "#2ca02c"]
+    error_bar:
+      capsize: 8.0
+      capthick: 2.0
+      elinewidth: 2.0
+      alpha: 0.7
+    fonts:
+      axis_label: 16
+      title: 16
+      legend: 14
+      tick: 16
+    grid:
+      alpha: 0.3
+      linestyle: "--"
+
+  comparison_radar:
+    enabled: true
+    figure_size: [10.0, 10.0]
+    line_style: o-
+    line_width: 2.0
+    fill_alpha: 0.15
+    legend_loc: upper right
+    legend_bbox_to_anchor: [1.3, 1.1]
+    title: Multi-Metric Comparison
+    title_fontsize: 16
+    title_fontweight: bold
+    title_pad: 20
+    grid: true
+    dpi: 150
+
+  transferability_sweep:
+    enabled: true
+    dpi: 300
+    figure_size: [7.5, 5.0]
+    combined_figure_size: [20.0, 12.0]
+    line:
+      linewidth: 2.0
+      marker: o
+      markersize: 8.0
+    error_bar:
+      capsize: 8.0
+      capthick: 2.0
+      elinewidth: 2.0
+      alpha: 0.7
+    fonts:
+      axis_label: 16
+      title: 16
+      legend: 14
+      tick: 16
+    grid:
+      alpha: 0.3
+      linestyle: "--"

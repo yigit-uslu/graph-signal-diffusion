@@ -1,0 +1,28 @@
+# @package _global_
+# WRA small scenario: 50-link dense networks (~50 pairs / km²)
+#
+# Full-power baseline guidance (run channel_analysis to update):
+#   r_min = 0.25–0.5 bits/s/Hz is a reasonable constraint.
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_small
+
+dataset:
+  num_networks: 32
+  n_links: 50
+  deployment_range: 1000.0  # metres
+
+channel:
+  # INTENTIONAL: wra_small locks to v2 for reproducibility with existing cached
+  # channels and collected PD samples.  At 50 links / 1 km² the v2 path-loss
+  # model is adequate and there is no need for the recursive spatial subdivision
+  # introduced in v3.  Do NOT change to v3 unless you regenerate all channels
+  # and PD samples from scratch for this scenario.
+  version: v2
+
+# Human-readable label used for logging and Hydra output directories.
+# Does NOT affect channel cache identity — channel_cache_key is used for that.
+channel_config_name: s_${seed}_D_${dataset.num_networks}_N_${dataset.n_links}_R_${dataset.deployment_range}_cv_${channel.version}

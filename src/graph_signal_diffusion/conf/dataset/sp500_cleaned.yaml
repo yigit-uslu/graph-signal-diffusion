@@ -1,0 +1,51 @@
+# @package dataset
+# Inherits from sp500.yaml - only override what's different for cleaned data
+defaults:
+  - sp500  # Inherit all parameters from sp500.yaml
+  - _self_
+
+# Override name for this variant
+name: sp500_cleaned
+
+# Point to cleaned data directory
+# root: ${hydra:runtime.cwd}/data/sp500/cleaned_drop_incomplete_min_coverage_0.95_corr_0.5
+# This is the updated SP500 graph that uses stock fundamentals to compute the graph.
+root: ${hydra:runtime.cwd}/data/sp500/cleaned_drop_incomplete_min_coverage_0.95_corr_0.6_sector_bonus_0.05
+spectral_normalize_edge_weights: true
+
+# Cleaned data info (from metadata.json):
+# {
+#   "method": "drop_incomplete",
+#   "min_coverage": 0.95,
+#   "edge_weight_threshold": 0.6,
+#   "correlation_threshold": 0.6,
+#   "corr_method": "spearman",
+#   "sector_bonus": 0.05,
+#   "adjacency_formula": "|fundamentals_correlations| + 0.05 * sector_adjacency",
+#   "adjacency_thresholding_enabled": true,
+#   "visualization_threshold": 0.5,
+#   "num_stocks": 468,
+#   "num_dates": 2353,
+#   "num_nonzero_edges": 21200,
+#   "nonzero_edge_density": 0.09679304551099423,
+#   "graph_metadata_file": "graph_metadata.json",
+#   "num_connected_components": 1,
+#   "largest_component_fraction": 1.0,
+#   "min_degree": 3,
+#   "max_degree": 93,
+#   "avg_weighted_degree": 30.9984977101018,
+#   "num_edges_above_threshold": 17508,
+#   "edge_density_above_threshold": 0.0799364453210607,
+#   "adj_matrix_stats": {
+#     "min": 0.0,
+#     "max": 1.0,
+#     "mean": 0.06623610621816627,
+#     "std": 0.2042125223218374
+#   },
+#   "date_range": [
+#     "2016-09-06",
+#     "2026-02-13"
+#   ],
+#   "timestamp": "2026-02-15T18:38:12.681503"
+# }
+

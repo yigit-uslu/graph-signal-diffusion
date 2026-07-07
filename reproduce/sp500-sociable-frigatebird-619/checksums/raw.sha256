@@ -1,0 +1,4 @@
+a8ce48060c8770dbb602e13ec134b852acd5af3c5ff3414a03b2398842c2ff23  data/sp500/raw/values.csv
+8a5b782bc1bbc036b6f99488cf7eb48dfeb1b9816edfabe8ed537f93a23078e4  data/sp500/raw/stocks.csv
+c0a1915eb20ba37af1f693ec2019a0d769f34ce51a6e226f0f1b0fb459418aa5  data/sp500/raw/fundamentals.csv
+8a90a4d1335a2e9b064c3e31169b1574c23eba52a0cadd663e0b551cd8efcf2b  data/sp500/raw/adj.npy

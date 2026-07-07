@@ -1,0 +1,27 @@
+name: density_transfer
+
+target_profiles:
+  - wra_large_outdoor_mid_density
+  - wra_large_outdoor_high_density
+  - wra_large_outdoor_ultra-low_density
+
+baselines_to_compare: [fp, wmmse, diffusion]
+n_samples_per_network: 50
+
+# Grouped-loader settings used for transfer eval only.
+batch_size_val: 8
+num_workers: 0
+pin_memory: false
+persistent_workers: false
+
+# Null = evaluate all grouped batches.
+eval_max_batches: null
+visualize: true
+
+# Safety guard: compare source and target P_max_dBm before evaluation.
+allow_pmax_mismatch: false
+
+# Transfer cache policy.
+auto_generate_cache: true
+require_existing_cache: false
+

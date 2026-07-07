@@ -1,0 +1,15 @@
+# @package _global_
+# PD sample collection config for the wra_debug scenario.
+# Use with:
+#   python -m graph_signal_diffusion.cli.wra.build_diffusion_dataset \
+#     --config-name=pd_collection/wra_debug \
+#     input_dir=/path/to/pd_run
+
+defaults:
+  - /pd_training/wra_debug
+  - /pd_collection/defaults
+  - _self_
+
+
+# All collection parameters match pd_collection/defaults exactly.
+# No overrides needed for wra_debug; provide ``input_dir=...`` on the CLI.

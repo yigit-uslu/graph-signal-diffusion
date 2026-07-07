@@ -1,0 +1,10 @@
+# @package wandb
+# W&B config for baseline evaluation runs.
+# Inherits everything from default.yaml, overrides tags to distinguish
+# baseline evaluation from training runs in the W&B dashboard.
+#
+# Enable via CLI: wandb.enabled=true
+defaults:
+  - default
+
+tags: ["baseline"]

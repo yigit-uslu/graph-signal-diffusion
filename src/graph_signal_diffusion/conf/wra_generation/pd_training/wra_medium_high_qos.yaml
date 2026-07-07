@@ -1,0 +1,20 @@
+# @package _global_
+# PD expert training config for the wra_medium scenario with a tighter QoS constraint.
+# Same channel scenario as wra_medium but with r_min = 1.0 (vs 0.6).
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_medium_high_qos
+
+defaults:
+  - /scenario/wra_medium
+  - /pd_training/defaults
+  - _self_
+
+training:
+  r_min: 1.0
+  batch_size: 32
+  alpha_dual: 0.05
+  convergence_window: 1000
+  convergence_patience: 200
+  violation_fraction_on_model_avg_rates_threshold: 0.001
+  moving_avg_window: 200
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

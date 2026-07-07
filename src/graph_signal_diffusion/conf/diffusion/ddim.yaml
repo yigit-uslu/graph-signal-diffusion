@@ -1,0 +1,55 @@
+# @package diffusion
+name: ddim
+_target_: graph_signal_diffusion.diffusion.ddim.DDIM
+
+# Noise schedule (training)
+num_timesteps: 500 # 1000
+beta_schedule: linear  # or 'cosine'
+beta_start: 0.0001
+beta_end: 0.02
+
+# Loss
+loss_type: l2  # or 'l1', 'huber'
+parameterization: eps  # or 'x0', 'v'
+
+# Sampling
+clip_denoised: false
+
+# DDIM-specific parameters
+sampling_timesteps: 100  # Number of sampling steps (accelerated). Set to null or num_timesteps for no acceleration
+ddim_eta: 0.2  # Stochasticity: 0.0 = deterministic (fastest), 1.0 = DDPM-like
+
+# RevIN (Reversible Instance Normalization) — opt-in
+revin: false
+revin_eps: 1.0e-5
+revin_cond_feature_idx: 4  # fallback index (SP500 DailyLogReturn=4); dataset metadata preferred
+
+# RevIN σ_cond_w bias-compensation knobs. Active only when revin=true.
+#
+# Blend weight on the past-window σ_cond_w estimator:
+#   σ'_w = w·σ_cond_w + (1 - w)·1.0
+# w=1.0 → pure past-window estimate (legacy behavior). w=0.0 → collapse
+# to the per-stock long-run σ (= 1.0 by construction after upstream
+# standardization). 0 < w < 1 blends the two and structurally reduces
+# the past-window estimator's downward bias.
+revin_blend_weight: 1.0
+
+# Symmetric σ correction applied AFTER blending. Multiplies σ_w at the
+# single source (_compute_revin_stats) so both forward-normalize
+# (training, ELBO) and reverse-denormalize (sampling) use the same
+# corrected scale.
+#
+# Default uses the ${revin_alpha:w,b} resolver to auto-derive the
+# bias-compensation factor:
+#   α(w, b) = 1 / (1 - w·(1 - b))
+# where b = E[σ_cond_w] over the training set. The SP500 builder injects
+# the empirical b at dataset_info.sigma_cond_mean_train; non-SP500 paths
+# (no injection) fall back to the SP500-tuned literal 0.82.
+#
+# The resolver fires at config-resolution time and the resulting literal
+# numeric value is saved in .hydra/config.yaml — so checkpoint reload
+# does not refire the resolver.
+#
+# See docs/agent_summaries/revin_alpha_resolver_2026-05-26.md for the
+# derivation and tests. To disable correction explicitly, set this to 1.0.
+revin_sigma_correction: ${revin_alpha:${.revin_blend_weight},${oc.select:dataset_info.sigma_cond_mean_train,0.82}}

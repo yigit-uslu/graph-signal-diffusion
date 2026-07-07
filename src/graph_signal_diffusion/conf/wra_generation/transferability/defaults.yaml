@@ -1,0 +1,66 @@
+# @package _global_
+#
+# Standalone WRA transferability evaluation.
+#
+# Simplified config aligned with compare_baselines_wra.yaml conventions.
+# The CLI entry point is:
+#   python -m graph_signal_diffusion.cli.compare_wra_transferability \
+#       source.checkpoint_path=<path>
+#
+defaults:
+  - /task: wireless_resource_allocation
+  - /baseline@baselines.fp: fp
+  - /baseline@baselines.wmmse: wmmse
+  - /baseline@baselines.diffusion: diffusion
+  - /plot_style: wra_compare
+  - _self_
+
+name: wra_transferability
+
+# --- Source checkpoint ---
+source:
+  checkpoint_path: null             # required: path to diffusion checkpoint
+  source_scenario_name: wra_large_outdoor_low_density
+  model_cond_channels: null         # null -> resolved from checkpoint config
+
+# --- Targets ---
+targets:
+  - scenario: wra_large_outdoor_mid_density
+    eval_num_networks: 8
+    cache_num_networks: null
+  - scenario: wra_large_outdoor_high_density
+    eval_num_networks: 8
+    cache_num_networks: null
+  - scenario: wra_large_outdoor_ultra-low_density
+    eval_num_networks: 8
+    cache_num_networks: null
+
+baselines_to_compare: [fp, wmmse, diffusion]
+n_samples_per_network: 50
+batch_size_val: 8
+r_min_values: [0.6]
+
+# --- Transfer cache & data ---
+transfer_cache:
+  root: ${hydra:runtime.cwd}/data/wra_channel_cache_transfer
+  auto_generate: true
+  require_existing_cache: false
+transfer_data_root: ${hydra:runtime.cwd}/data/wra_transfer
+
+# --- Baseline overrides ---
+baselines:
+  fp:
+    n_samples: ${n_samples_per_network}
+  wmmse:
+    n_samples: ${n_samples_per_network}
+  diffusion:
+    n_samples: ${n_samples_per_network}
+    evaluation:
+      structural_metrics: false
+
+hydra:
+  run:
+    dir: outputs/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

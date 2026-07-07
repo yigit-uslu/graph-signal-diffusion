@@ -1,0 +1,32 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+# All 4 medium-large outdoor densities at a SINGLE reference r_min (0.6).
+# Companion to wra_medium-large_outdoor_all_density_all_rmin, but WITHOUT the
+# r_min sweep: 4 sub-datasets (one per density) instead of 20.
+#
+# Because r_min is fixed, it carries no information as a conditioning channel,
+# so model_cond_channels drops 3 -> 2 (just [direct_signal, total_interference]).
+name: wra
+scenario: medium-large_outdoor_all_density
+datasets:
+  # Reference r_min=0.6 sub-dataset per density (same content-addressed paths
+  # used by sophisticated-oarfish-9's r_min=0.6 slice).
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h0dd7afd393f9"  # r_min=0.6
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"        # r_min=0.6
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_hc1f8f7a25432"        # r_min=0.6
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_ha6c7c432ee13"       # r_min=0.6
+
+model_cond_channels: 2  # Single fixed r_min -> no r_min channel (vs 3 in the all_rmin config)
+
+# 4 sub-datasets x 32 networks x 200 samples = 25,600 total samples.
+# Training: 25,600 * 0.625 = 16,000 samples; Val: 25,600 * 0.125 = 3,200
+batch_size: 800        # 16,000 / 800 = 20 iterations per epoch
+batch_size_val: 800    # 4 * 32 * 0.125 * 50 = 800 effective val samples -> 1 val batch
+
+# 5:1:2 split: each sub-dataset independently splits by network ID
+train_fraction: 0.625  # First 5/8 of networks in each sub-dataset
+val_fraction: 0.125    # Next 1/8th
+test_fraction: 0.25    # Last 1/4th

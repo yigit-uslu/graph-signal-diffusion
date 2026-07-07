@@ -1,0 +1,61 @@
+name: graph-signal-diffusion
+channels:
+  - pytorch
+  - pyg
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Core Python
+  - python=3.11
+
+  # Scientific computing (install first, no CUDA dependency)
+  - numpy>=1.26
+  - scipy>=1.15
+  - pandas>=2.2
+
+  # Visualization
+  - matplotlib>=3.10
+  - seaborn>=0.13
+  - networkx>=2.8
+
+  # Machine Learning
+  - scikit-learn>=1.4
+
+  # Configuration management
+  - hydra-core>=1.3
+  - omegaconf>=2.3
+  - pyyaml>=6.0
+
+  # Utilities
+  - tqdm>=4.67
+  - pillow>=11.0
+
+  # pip for remaining packages
+  - pip>=24.0
+
+# Notes:
+# - This minimal environment installs only non-PyTorch dependencies
+# - Install PyTorch and PyG separately after environment creation
+# - See INSTALL.md for PyTorch installation instructions based on your CUDA version
+# 
+# After creating this environment, run:
+#   conda activate graph-signal-diffusion
+#   
+# Then install PyTorch (choose one):
+#   # For CUDA 11.8:
+#   conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+#   
+#   # For CUDA 12.1:
+#   conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+#   
+#   # For CPU only:
+#   conda install pytorch torchvision torchaudio cpuonly -c pytorch
+#   
+# Then install PyG:
+#   conda install pyg -c pyg
+#   
+# Then install remaining pip packages:
+#   pip install torch-scatter torch-sparse torch-cluster torch-spline-conv
+#   pip install jaxtyping beartype accelerate wandb yfinance
+#   pip install -e .

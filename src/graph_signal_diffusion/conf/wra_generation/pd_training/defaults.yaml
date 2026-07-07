@@ -1,0 +1,101 @@
+# @package _global_
+# Default model architecture and training hyperparameters for PD expert training.
+# Compose this into per-scenario pd_training configs via:
+#   defaults:
+#     - /pd_training/defaults
+#
+# The PD expert is a GNN policy trained with primal-dual optimisation to maximise
+# the minimum per-link rate subject to individual rate constraints.  Its collected
+# trajectories form the supervision dataset for diffusion model training.
+
+# Model parameters
+model:
+  type: gnn                 # 'gnn' or 'mlp' (mlp for debugging only)
+  hidden_dim: 64
+  num_layers: 3
+  K: 2                      # TAGConv hops (GNN only)
+  norm_type: layer          # Normalisation layer type: 'layer', 'group', 'instance'
+  num_groups: 8             # Groups for GroupNorm (only used when norm_type='group')
+  dropout: 0.1              # Dropout rate
+  activation: silu          # Activation function: 'relu', 'silu', 'gelu', 'leaky_relu'
+
+# Training / optimisation parameters
+training:
+  batch_size: 16
+  learning_rate: 5e-4
+  max_epochs: 10000
+
+  # Convergence detection
+  convergence_window: 200       # "C": Number of recent epoch scalars to consider for convergence criteria
+  convergence_warmup_epochs: 1000  # Earliest epoch to start convergence checks
+  convergence_patience: 50      # confirmation length in epochs after criteria are met
+  gradient_norm_threshold: inf  # Inactive: Threshold on average gradient norm for convergence (inf = disabled)
+  dual_variance_threshold: inf  # Inactive: Threshold on variance of dual variable for convergence (inf = disabled)
+  dual_stationarity_threshold: 0.3  # Threshold on mean_i |lambda_bar_i * g_bar_i| over the C-epoch window
+  violation_fraction_threshold: 1.0   # Inactive: Threshold on fraction of samples violating constraints for convergence at each epoch
+  violation_fraction_on_model_avg_rates_threshold: 0.05  # Threshold on violation fraction after averaging rates over the M-epoch window
+  mean_violation_slack_on_model_avg_rates_threshold: 0.01  # Threshold on mean violation slack after averaging rates over the M-epoch window
+
+  # Primal-dual optimization
+  r_min: null                   # Legacy scalar min-rate target (used when constraint_profile.source=scalar)
+  constraint_profile:
+    type: min_rate
+    source: scalar              # scalar | explicit | sampled
+    scalar:
+      value: ${training.r_min}
+    explicit:
+      profiles: []              # list[float] or list[list[float]]
+      names: []                 # optional cosmetic labels (excluded from run-key hash)
+    sampled:
+      min: null
+      max: null
+      count: null
+      seed: null
+    r_min_feature_scale: 1.0    # scaling factor for appended r_min feature channel
+
+  alpha_dual: 0.2               # Dual learning rate
+  dual_update_mode: step        # 'step' = every K gradient steps, 'epoch' = every epoch
+  dual_update_frequency: 2
+  dual_momentum: 0.5            # 0 = no momentum, higher → faster oscillation around optimum
+
+  # Expert sample collection (trajectories used as diffusion training data)
+  num_samples_per_network: ${.convergence_window}  # Diverse samples collected per network (Polyak-style)
+  # Polyak averaging window of epochs for practical policy evaluation
+  moving_avg_window: ${.convergence_window} # "M": gives sample_checkpoint_frequency = 1 when equal to num_samples_per_network.
+  # Sample collection frequency (epochs) controls only how often the trainer runs collect_samples().
+  sample_collection_interval: null # null = auto (num_samples_per_network * max(1, floor(moving_avg_window / num_samples_per_network)))
+
+  # Optional detailed trajectory trace for a small set of networks.
+  # This is independent from primal_history.jsonl (which stays window-bounded).
+  # Disabled by default because it writes substantial per-epoch metadata to disk
+  # that is only consumed by the visualize_trace pipeline — it is not needed for
+  # the diffusion-dataset building pipeline.
+  # To enable, pass `training.trace_logging.enabled=true` as a Hydra CLI override
+  # or set it in a per-scenario pd_training config.
+  trace_logging:
+    enabled: false
+    network_ids: [0, 1]              # Example tracked network IDs (dataset/expanded IDs)
+    receiver_indices: [0, 1]      # Optional node pair of interest; out-of-range indices are ignored
+    include_full_vectors: true    # Save full power/rate/dual/slack vectors in addition to selected nodes
+    write_interval: 50            # Buffered JSONL append interval (epochs)
+    output_filename: tracked_network_trace.jsonl
+
+# Human-readable PD run label (logging / output dir).
+# Interpolations resolve lazily from the fully composed config, including CLI overrides.
+pd_config_name: ${channel_config_name}_pd_${training.constraint_profile.source}_dual_alpha_${training.alpha_dual}_dual_momentum_${training.dual_momentum}
+
+# Content-addressed PD run key — uniquely identifies this training run.
+# All fields that affect the trained model or collected samples must appear here.
+# Hash behavior for constraint_profile:
+# - source=scalar: includes scalar.value (or training.r_min fallback)
+# - source=explicit: includes explicit.profiles only (explicit.names are cosmetic and excluded)
+# - source=sampled: includes sampled.{min,max,count,seed}
+# Inactive source branches are excluded from the hash payload.
+pd_run_key: ${wra_pd_run_key:${channel_cache_key},${seed},${system.P_max_dBm},${system.bandwidth_Hz},${system.noise_psd_dBm_Hz},${model.type},${model.hidden_dim},${model.num_layers},${model.K},${model.norm_type},${model.dropout},${model.activation},${training.r_min},${training.constraint_profile.type},${training.constraint_profile.source},${training.constraint_profile.scalar.value},${training.constraint_profile.explicit.profiles},${training.constraint_profile.sampled.min},${training.constraint_profile.sampled.max},${training.constraint_profile.sampled.count},${training.constraint_profile.sampled.seed},${training.constraint_profile.r_min_feature_scale},${training.alpha_dual},${training.dual_momentum},${training.learning_rate},${training.batch_size},${training.max_epochs},${training.convergence_window},${training.convergence_warmup_epochs},${training.convergence_patience},${training.gradient_norm_threshold},${training.dual_variance_threshold},${training.dual_stationarity_threshold},${training.violation_fraction_threshold},${training.violation_fraction_on_model_avg_rates_threshold},${training.mean_violation_slack_on_model_avg_rates_threshold},${training.dual_update_mode},${training.dual_update_frequency},${training.num_samples_per_network},${training.moving_avg_window},${training.sample_collection_interval}}
+
+hydra:
+  run:
+    dir: outputs/${name}/${pd_run_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/multirun/${pd_run_key}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

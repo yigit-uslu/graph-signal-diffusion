@@ -1,0 +1,26 @@
+# @package _global_
+# Conditional PD expert training config for the wra_debug scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_debug_conditional
+
+defaults:
+  - /scenario/wra_debug
+  - /pd_training/defaults
+  - _self_
+
+training:
+  r_min: null
+  batch_size: 8
+  alpha_dual: 0.05
+
+  constraint_profile:
+    type: min_rate
+    source: explicit
+    explicit:
+      profiles: [0.5, 0.7, 0.9]
+      names: [low, medium, high]
+    r_min_feature_scale: 1.0
+
+  violation_fraction_on_model_avg_rates_threshold: 0.001
+  mean_violation_slack_on_model_avg_rates_threshold: 0.7
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

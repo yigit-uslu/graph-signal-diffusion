@@ -1,0 +1,21 @@
+# @package _global_
+# WRA debug scenario: 200-link sparse networks (~8 pairs / km²)
+# Uses a realistic dual-slope path loss + log-normal shadowing + Rayleigh fading channel (v3).
+#
+# Full-power baseline guidance (run channel_analysis to update):
+#   mean_of_means ≈ 1.57,  global_10th_pct ≈ 0.14
+#   r_min = 0.7 bits/s/Hz is a reasonable constraint.
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_debug
+
+dataset:
+  num_networks: 16
+  n_links: 50
+  deployment_range: 2500.0  # metres
+
+# All channel parameters, channel_config_name, and channel_cache_key are inherited from scenario/defaults.
+# No overrides needed for wra_debug (all defaults match this scenario exactly).

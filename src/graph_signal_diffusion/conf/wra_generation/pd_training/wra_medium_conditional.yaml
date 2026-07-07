@@ -1,0 +1,29 @@
+# @package _global_
+# PD expert training config for the wra_medium scenario with varying constraint levels.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_medium_conditional
+
+defaults:
+  - /scenario/wra_medium
+  - /pd_training/defaults
+  - _self_
+
+training:
+  batch_size: 16 # 32 
+  max_epochs: 20000
+
+  # Primal-dual hyperparameters
+  r_min: null # ineffective, overwritten by constraint_profile settings
+  alpha_dual: 0.1
+
+  sample_collection_interval: .inf # Collect samples only at the end of the training run, bypassing intermediate collections.
+
+  constraint_profile:
+    type: min_rate
+    source: explicit
+    explicit:
+      profiles: [0.4, 0.6, 0.7, 0.8, 1.0]
+      names: [low-qos, medium-low-qos, medium-qos, medium-high-qos, high-qos]
+    r_min_feature_scale: 1.0
+
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

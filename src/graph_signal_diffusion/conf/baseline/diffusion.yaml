@@ -1,0 +1,94 @@
+# @package baseline
+# Diffusion model baseline — wraps a pre-trained DiffusionTrainer for use
+# with evaluate.py and compare_baselines.py.
+#
+# You only need to point at a checkpoint; the model / diffusion /
+# optimizer configs are **auto-discovered** from the experiment's
+# .hydra/config.yaml that sits alongside the checkpoint.
+#
+# ── Usage (evaluate.py, top-level checkpoint_path) ─────────────────────
+#
+#   python -m graph_signal_diffusion.cli.evaluate \
+#       baseline=diffusion \
+#       dataset=sp500_cleaned  task=stock_price_forecasting_v2 \
+#       checkpoint_path=outputs/.../trainer_chkpts/DDPM_epoch_1500.pt
+#
+# ── Usage (compare_baselines.py, per-baseline checkpoint_path) ─────────
+#
+#   python -m graph_signal_diffusion.cli.compare_baselines \
+#       baselines.diffusion.checkpoint_path=outputs/.../DDPM_epoch_1500.pt
+#
+name: diffusion
+_target_: graph_signal_diffusion.baselines.diffusion.baseline.DiffusionBaseline
+needs_training: false
+
+# Path to a saved .pt checkpoint.  When provided in the baseline config,
+# the constructor auto-builds and loads; when null, the caller (evaluate.py)
+# is expected to call baseline.load_checkpoint(cfg.checkpoint_path).
+checkpoint_path: null
+
+# Number of diffusion samples to generate per input window at evaluation time.
+# Mirrors GRW's n_samples knob for fair comparison.
+# evaluate.py propagates this to dataset.n_samples_per_input BEFORE building
+# the datamodule, so ReplicatedDataset clones each window n_samples times.
+# null = no replication (dataset.n_samples_per_input stays at its default of 1).
+# 20 = 20 samples per input window, matching GRW's default n_samples.
+n_samples: 20
+
+# Optional field-level overrides applied on top of the experiment's saved diffusion
+# config before the sampler is instantiated.  Any key from the diffusion YAML can
+# be patched here, including _target_ (to swap the sampler class entirely).
+#
+# Examples:
+#   # Keep DDIM but halve the sampling steps and make it deterministic:
+#   diffusion_overrides:
+#     sampling_timesteps: 50
+#     ddim_eta: 0.0
+#
+#   # Swap to full DDPM sampling (uses all num_timesteps steps):
+#   diffusion_overrides:
+#     _target_: graph_signal_diffusion.diffusion.ddpm.DDPM
+#
+diffusion_overrides: {}  # empty = use the experiment's saved config unchanged
+
+# Post-hoc variance correction applied to generated samples in standardized
+# space inside trainer.evaluate_v2() — BEFORE batch_hook fires, so both
+# task-level metrics (CRPS / coverage / cum-T) and structural diagnostics
+# (eigval1, autocorr, …) see the corrected samples. Default "off" is a
+# bitwise no-op; existing launchers and pretrained checkpoints run
+# unchanged. See docs/agent_summaries/variance_correction_plan_2026-05-20.md.
+#
+#   mode=scalar:       rescale = α  (single float)
+#   mode=per_horizon:  rescale[t] = α[t]  (list[float], len = future_window)
+#   mode="off":        no-op (default)
+#
+# CLI override examples:
+#   ++baselines.diffusion.variance_correction.mode=scalar \
+#   ++baselines.diffusion.variance_correction.alpha=1.5
+#
+# Note: "off" must be quoted because YAML 1.1 maps unquoted off/on to bool.
+#
+# `pivot` controls what the rescale is centered around:
+#   ensemble_mean: x' = μ_t + α(x - μ_t) around per-window per-stock per-horizon
+#                  ensemble mean. Preserves the model's point forecast at every
+#                  (b, t, s). Structural metrics drift modestly because the
+#                  t-varying intercept breaks γ_0-normalization invariance.
+#   zero:          x' = α·x around 0 in standardized space (equivalent to
+#                  pivoting around per-stock long-run mean μ_s in destandardized
+#                  space). Structural metrics STRICTLY scale-invariant. Per-
+#                  horizon point forecast moves by (α-1)·μ̂_t, small for daily
+#                  log returns. Does NOT require n_samples_per_input metadata.
+variance_correction:
+  mode: "off"                # "off" | "scalar" | "per_horizon"
+  alpha: null                # float, required when mode=scalar
+  alpha_per_horizon: null    # list[float] (len = future_window), required when mode=per_horizon
+  pivot: ensemble_mean       # "ensemble_mean" | "zero"
+
+# Evaluation-time structural diagnostics (mirrors GRW's evaluation block).
+evaluation:
+  structural_metrics: true       # Compute cross-stock & temporal structure diagnostics
+  structural_max_lag: 2           # Max lag for autocorrelation of r² (keep ≤ T-2)
+  structural_n_eigenvalues: 5     # Top-k eigenvalues of correlation matrix
+  log_every_n_batches: 10         # Print progress every N batches (0 = disable)
+  plot_dpi: 150                   # DPI for saved figures
+  elbo_n_mc_samples: 64           # MC samples for diffusion NLL proxy (higher = lower variance, more cost)

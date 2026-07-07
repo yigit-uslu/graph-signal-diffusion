@@ -1,0 +1,10 @@
+# @package _global_
+# Trace dynamics visualization config for the wra_large_outdoor_low_density scenario.
+# Use with:
+#   python -m graph_signal_diffusion.cli.wra.visualize_trace \
+#     --config-name=pd_trace_visualization/wra_large_outdoor_low_density \
+#     input_dir=/path/to/pd_run
+
+defaults:
+  - /pd_trace_visualization/defaults
+  - _self_

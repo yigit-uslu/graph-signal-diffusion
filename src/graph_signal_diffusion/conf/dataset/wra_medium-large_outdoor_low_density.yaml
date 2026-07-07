@@ -1,0 +1,18 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+name: wra
+scenario: medium-large_outdoor_low_density
+datasets: ["medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"]  # Specify the full content-addressed path from build_diffusion_dataset.py
+
+# Large-sized batches for the medium-large_outdoor_low_density scenario (32 networks, ~6400 train samples x 400 nodes per network = 2.56M total training data points).
+batch_size: 400 # approx. 10 iterations per epoch
+batch_size_val: 200 # unique_networks_per_batch = ceil(batch_size_val / n_samples_per_input = 200 / 50 = 4 networks per val batch)
+
+
+# 5:1:2 split strategy: each sub-dataset independently splits by network ID
+train_fraction: 0.625  # First 5/8 of networks in each sub-dataset
+val_fraction: 0.125    # Next 1/8th
+test_fraction: 0.25   # Last 1/4th

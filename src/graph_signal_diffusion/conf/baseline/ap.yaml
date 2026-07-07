@@ -1,0 +1,22 @@
+# @package baseline
+name: ap
+_target_: graph_signal_diffusion.baselines.wireless_resource_allocation.average_power.AveragePowerBaseline
+needs_training: false  # Statistics are computed directly from evaluation batches
+
+# ── Device ───────────────────────────────────────────────────────────
+device: cuda
+
+# Number of samples per network drawn by grouped evaluation dataloaders.
+# compare_baselines_wra.yaml can override this to align all baselines.
+n_samples: 1
+
+# ── Logging ──────────────────────────────────────────────────────────
+log_every_n_batches: 10  # Print progress every N batches (0 = disable)
+
+evaluation:
+  structural_metrics: false
+
+# ── Notes ────────────────────────────────────────────────────────────
+# Average-Power (AP) predicts a constant per-receiver power vector for each
+# network, computed as the mean expert allocation over that network's samples
+# in the evaluated split.

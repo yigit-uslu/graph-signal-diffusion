@@ -1,0 +1,12 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+name: wra
+scenario: medium
+datasets: ["medium/wrpc_v1_primal_history_k200_hdb3e93cc06fc"]
+
+# Medium-sized batches for the medium scenario (128 networks, ~25600 train samples x 200 nodes per network = 5.12M total training data points).
+batch_size: 960 # approx. 20 iterations per epoch
+batch_size_val: 800 # unique_networks_per_batch = ceil(batch_size_val / n_samples_per_input = 800 / 50 = 16 networks per val batch)

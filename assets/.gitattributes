@@ -1,0 +1,16 @@
+# ---------------------------------------------------------------------------
+# Figures under assets/ are versioned with REGULAR git — never git-LFS.
+#
+# Deliberate exception, parallel to the ep4500 checkpoint bundled in
+# reproduce/.../checkpoint/ (re-included past the root *.pt ignore). Here we
+# override the repo-root .gitattributes `*.pdf filter=lfs …` rule so that every
+# figure committed under assets/ is a plain git blob. Rationale: these figures are
+# small, are embedded in READMEs (PNG renders inline on GitHub; an LFS-tracked PDF
+# would not), and keeping them out of LFS is consistent with retiring the LFS
+# dependency. PNG is already regular-git; the *.pdf/*.svg lines future-proof the
+# subtree in case a vector figure is added.
+# ---------------------------------------------------------------------------
+*.png -filter -diff -merge -text
+*.jpg -filter -diff -merge -text
+*.svg -filter -diff -merge -text
+*.pdf -filter -diff -merge -text

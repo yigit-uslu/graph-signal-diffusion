@@ -1,0 +1,90 @@
+% =====================================================================
+%  _ugnn_preamble.tex  --  SHARED preamble fragment for the U-GNN figures
+%  (reference: oarfish-9)
+%
+%  \input this ONCE, in the PREAMBLE, from EITHER:
+%    * the standalone wrapper  ugnn_architecture_full.tex  (local 2-page preview), OR
+%    * your paper's main.tex   (to embed ugnn_fig1.tex / ugnn_fig2.tex).
+%
+%  Provides: TikZ libraries, the categorical colour palette, every math glyph
+%  macro (\bb*, \Phi*, \Pi*, \Psi*, \theta*), and the caption toggle.  The glyph
+%  macros use \providecommand, so if your paper ALREADY defines e.g. \bbS, your
+%  definition wins and nothing clashes.
+%
+%  REQUIRES tikz + amsmath already loaded (tikz pulls in xcolor for \definecolor).
+%
+%  ---- paper-side usage -------------------------------------------------
+%  preamble:
+%     \usepackage{tikz}\usepackage{amsmath}\usepackage{graphicx}
+%     \input{path/to/_ugnn_preamble}
+%     \showcaptionfalse            % paper supplies its own \caption{}
+%  body:
+%     \begin{figure*}[t]\centering
+%       \resizebox{\textwidth}{!}{\input{path/to/ugnn_fig1}}
+%       \caption{...}\label{fig:ugnn}
+%     \end{figure*}
+%     \begin{figure*}[t]\centering
+%       \resizebox{\textwidth}{!}{\input{path/to/ugnn_fig2}}
+%       \caption{...}\label{fig:ugnn-block}
+%     \end{figure*}
+%  NB embedded, fonts inherit YOUR paper's class (not extarticle 17pt);
+%  \resizebox scales the whole picture, so it stays internally consistent.
+% =====================================================================
+\usetikzlibrary{arrows.meta, positioning, calc, backgrounds, fit}
+
+% ===== categorical block palette =====================================
+%   green  = GNN  (phi^enc / phi^dec / phi^bn)
+%   purple = projection layers (Pi_0, Pi^cond, Pi^step, Pi_b, Pi^skip, Pi_out)
+%   orange = learned node selector (Psi_b)  -- matches its C_b control edges
+%   red / blue are RESERVED for the encoder / decoder panels.
+\definecolor{gnncol}{RGB}{200,230,190}
+\definecolor{projcol}{RGB}{223,201,234}
+\definecolor{selcol}{RGB}{250,205,158}
+\definecolor{bandcol}{RGB}{176,130,80}   % depth-band base (warm golden sand; swap freely)
+
+% ===== math glyphs (\providecommand: figure owns them, but a paper that ====
+% ===== already defines the symbol keeps its own version, no clash) ========
+\providecommand{\bbS}{\mathbf{S}}
+\providecommand{\bbC}{\mathbf{C}}
+\providecommand{\bbD}{\mathbf{D}}
+\providecommand{\bbZ}{\mathbf{Z}}
+\providecommand{\bbY}{\mathbf{Y}}
+\providecommand{\bbU}{\mathbf{U}}
+\providecommand{\bbK}{\mathbf{K}}
+\providecommand{\bbP}{\mathbf{P}}
+\providecommand{\bbV}{\mathbf{V}}
+\providecommand{\bbI}{\mathbf{I}}
+\providecommand{\bbvv}{\mathbf{v}}
+\providecommand{\bbx}{\mathbf{x}}
+\providecommand{\bbu}{\mathbf{u}}
+\providecommand{\bbeps}{\boldsymbol{\epsilon}_{\boldsymbol{\theta}}}
+\providecommand{\bbepsilon}{\boldsymbol{\epsilon}}      % bare epsilon (subscript supplied at use site)
+\providecommand{\bbtheta}{\boldsymbol{\theta}}
+\providecommand{\bbxi}{\boldsymbol{\xi}}                % compact conditioning placeholder (S,u,...)
+\providecommand{\alphacumprod}{\bar{\alpha}}            % cumulative-product noise schedule constant
+\providecommand{\UK}{[\bbU_0;\bbK_0]}
+% GNN operators (single symbol phi, role superscript)
+\providecommand{\PhiEnc}[1]{\boldsymbol{\Phi}^{\mathrm{E}}_{#1}}
+\providecommand{\PhiDec}[1]{\boldsymbol{\Phi}^{\mathrm{D}}_{#1}}
+\providecommand{\PhiBn}{\boldsymbol{\Phi}^{\mathrm{B}}}
+% projection / embedding family
+\providecommand{\Piin}{\Pi_{0}}
+\providecommand{\Picond}{\Pi^{\mathrm{cond}}_{0}}
+\providecommand{\Pistep}{\Pi^{\mathrm{step}}_{0}}
+\providecommand{\Piblk}[1]{\Pi_{#1}}
+\providecommand{\Piskip}[1]{\Pi^{\mathrm{skip}}_{#1}}
+\providecommand{\Piout}{\Pi_{\mathrm{out}}}
+% scoring head
+\providecommand{\Psisel}[1]{\boldsymbol{\Psi}_{#1}}
+% learnable parameters
+\providecommand{\thetaenc}{\boldsymbol{\Theta}^{\mathrm{E}}}
+\providecommand{\thetadec}{\boldsymbol{\Theta}^{\mathrm{D}}}
+\providecommand{\thetasel}{\boldsymbol{\Theta}^{\mathrm{sel}}}
+
+% ===== caption toggle (build option) =================================
+% Captions ON by default.  Turn OFF either way:
+%   * after this \input:  \showcaptionfalse        (e.g. when embedding in a paper)
+%   * on the command line: pdflatex "\def\nocaption{}\input{ugnn_architecture_full}"
+% Guarded so a double \input cannot redefine/reset the flag.
+\ifdefined\ifshowcaption\else \newif\ifshowcaption \showcaptiontrue \fi
+\ifdefined\nocaption\showcaptionfalse\fi

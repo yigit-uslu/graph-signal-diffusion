@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1080"
+     font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10"
+            refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+    </marker>
+    <marker id="cond-arrow" markerWidth="10" markerHeight="10"
+            refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#bd8a3e"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .sub { font-size: 0.65em; baseline-shift: sub; }
+      .sup { font-size: 0.65em; baseline-shift: super; }
+      .dim { font-size: 12px; fill: #ddd; }
+      .small { font-size: 11px; fill: #ddd; }
+      .note { font-size: 11px; fill: #888; font-style: italic; }
+    </style>
+  </defs>
+
+  <text x="750" y="38" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">
+    U-GNN denoiser — sophisticated-oarfish-9 (block detail)
+  </text>
+  <text x="750" y="62" text-anchor="middle" font-size="13" fill="#555">
+    Encoder block 1 (&#947;=2, has selector) and Decoder block 1 (zero-fill unpool)
+  </text>
+
+  <!-- ===================== ENCODER BLOCK ===================== -->
+  <g transform="translate(40, 90)">
+    <rect x="0" y="0" width="700" height="940" rx="18" fill="#f6f3ff" stroke="#3a397e" stroke-width="1.5"/>
+    <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#3a397e">
+      Encoder block 1 &#160; (Level 1, in=64, out=64, &#947;=2)
+    </text>
+    <text x="350" y="52" text-anchor="middle" class="note" fill="#666">
+      Block 0 is identical but omits the selector (&#947;=1); Block 2 is identical but with stride<tspan class="sub">pre</tspan>=2
+    </text>
+
+    <!-- Input -->
+    <rect x="240" y="74" width="220" height="56" rx="10" fill="#3a3a3a" filter="url(#shadow)"/>
+    <text x="350" y="98" text-anchor="middle" font-size="14" font-weight="bold" fill="white">x &#160;(B, 1, 400, 64)</text>
+    <text x="350" y="118" text-anchor="middle" class="small">active_mask = all-True (400)</text>
+
+    <!-- Time MLP -->
+    <rect x="20" y="160" width="200" height="64" rx="10" fill="#3f3f3f" filter="url(#shadow)"/>
+    <text x="120" y="184" text-anchor="middle" font-size="13" font-weight="bold" fill="white">time_proj</text>
+    <text x="120" y="204" text-anchor="middle" class="small">SiLU &#8594; Linear 128&#8594;64</text>
+    <text x="120" y="220" text-anchor="middle" class="small">time_token (B, 64)</text>
+
+    <!-- Cond proj -->
+    <rect x="240" y="160" width="220" height="64" rx="10" fill="#4d3e1f" filter="url(#shadow)"/>
+    <text x="350" y="184" text-anchor="middle" font-size="13" font-weight="bold" fill="white">cond_proj &#160;Linear 128&#8594;64</text>
+    <text x="350" y="204" text-anchor="middle" class="small">shared cond emb (B, 400, 128) static</text>
+    <text x="350" y="220" text-anchor="middle" class="small">broadcast &#8594; cond_feats (B, 1, 400, 64)</text>
+
+    <!-- Mask cond -->
+    <rect x="480" y="160" width="200" height="64" rx="10" fill="#5a59a3" filter="url(#shadow)"/>
+    <text x="580" y="184" text-anchor="middle" font-size="13" font-weight="bold" fill="white">mask cond by active</text>
+    <text x="580" y="204" text-anchor="middle" class="small">cond_feats &#8902; mask_4d</text>
+    <text x="580" y="220" text-anchor="middle" class="small">(zeros out inactive)</text>
+
+    <!-- Concat fusion (operational) -->
+    <rect x="120" y="260" width="460" height="74" rx="10" fill="#2c5d7e" filter="url(#shadow)"/>
+    <text x="350" y="284" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+      Concat &#8594; Linear (fusion_proj)
+    </text>
+    <text x="350" y="304" text-anchor="middle" class="small">
+      input = [x, time_token (broadcast to T,N), cond_feats]
+    </text>
+    <text x="350" y="320" text-anchor="middle" class="small">
+      Linear 192 &#8594; 64 &#160;&#8594;&#160; x_fused (B, 1, 400, 64), masked by active
+    </text>
+
+    <!-- GNN stack -->
+    <rect x="100" y="370" width="500" height="220" rx="14" fill="#3a397e" filter="url(#shadow)"/>
+    <text x="350" y="396" text-anchor="middle" font-size="15" font-weight="bold" fill="white">
+      GNN (num_layers = 2)
+    </text>
+    <text x="350" y="416" text-anchor="middle" class="dim">in 64 &#8594; hidden 64 &#8594; out 64</text>
+
+    <rect x="170" y="430" width="360" height="64" rx="8" fill="#5a59a3"/>
+    <text x="350" y="452" text-anchor="middle" font-size="13" font-weight="bold" fill="white">ResidualGNNBlock &#8595;1</text>
+    <text x="350" y="471" text-anchor="middle" class="small">Strided TAGConv K=2 (&#947;<tspan class="sub">eff</tspan>=stride<tspan class="sub">pre</tspan>=1)</text>
+    <text x="350" y="487" text-anchor="middle" class="small">LayerNorm &#8594; SiLU &#8594; Dropout 0.05 + residual</text>
+
+    <rect x="170" y="510" width="360" height="64" rx="8" fill="#5a59a3"/>
+    <text x="350" y="532" text-anchor="middle" font-size="13" font-weight="bold" fill="white">ResidualGNNBlock &#8595;2</text>
+    <text x="350" y="551" text-anchor="middle" class="small">Strided TAGConv K=2 (&#947;<tspan class="sub">eff</tspan>=1 here)</text>
+    <text x="350" y="567" text-anchor="middle" class="small">LayerNorm &#8594; SiLU &#8594; Dropout 0.05 + residual</text>
+
+    <!-- Re-mask -->
+    <rect x="200" y="612" width="300" height="40" rx="10" fill="#444" filter="url(#shadow)"/>
+    <text x="350" y="637" text-anchor="middle" font-size="13" font-weight="bold" fill="white">
+      re-apply active_mask
+    </text>
+
+    <!-- Skip cache -->
+    <rect x="20" y="680" width="160" height="64" rx="10" fill="#bd8a3e" filter="url(#shadow)"/>
+    <text x="100" y="704" text-anchor="middle" font-size="13" font-weight="bold" fill="white">skip cache</text>
+    <text x="100" y="722" text-anchor="middle" class="small">x_before_pool</text>
+    <text x="100" y="738" text-anchor="middle" class="small">compact-packed</text>
+
+    <!-- Pool = pure NodeSelector -->
+    <rect x="200" y="680" width="450" height="80" rx="10" fill="#1d5a4a" filter="url(#shadow)"/>
+    <text x="425" y="705" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+      StridedGraphMaxPool &#8594; NodeSelector v3
+    </text>
+    <text x="425" y="724" text-anchor="middle" class="small">
+      &#947;=2, pool_K=0, neighborhood_pooling=null &#8594; <tspan font-style="italic">selection only, no aggregation</tspan>
+    </text>
+    <text x="425" y="742" text-anchor="middle" class="small">
+      STE top-K with linear temperature anneal 1.0 &#8594; 0.50
+    </text>
+
+    <!-- Output -->
+    <rect x="240" y="790" width="220" height="60" rx="10" fill="#3a3a3a" filter="url(#shadow)"/>
+    <text x="350" y="814" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+      x_pooled &#160;(B, 1, 400, 64)
+    </text>
+    <text x="350" y="834" text-anchor="middle" class="small">new active_mask: ~200 True</text>
+
+    <!-- Arrows -->
+    <line x1="350" y1="130" x2="350" y2="156" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="224" x2="350" y2="258" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="120" y1="224" x2="230" y2="277" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="580" y1="224" x2="470" y2="277" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="334" x2="350" y2="368" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="494" x2="350" y2="508" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="574" x2="350" y2="610" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="652" x2="350" y2="678" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="760" x2="350" y2="788" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Skip path tap from re-mask to skip cache -->
+    <path d="M 200 632 C 130 632, 100 660, 100 680" stroke="#bd8a3e" stroke-width="2.2"
+          fill="none" stroke-dasharray="6,4" marker-end="url(#cond-arrow)"/>
+
+    <!-- Notes -->
+    <text x="350" y="884" text-anchor="middle" class="note">
+      cond_fusion_mode = <tspan font-weight="bold">concat</tspan> (no cross-attention, no FiLM)
+    </text>
+    <text x="350" y="902" text-anchor="middle" class="note">
+      use_temporal_mixer = false &#8594; no TemporalDepthwiseMixer / self-attention anywhere
+    </text>
+    <text x="350" y="920" text-anchor="middle" class="note">
+      Encoder block 0 is identical minus the selector (skipped by selector_skip_gamma1_levels)
+    </text>
+  </g>
+
+  <!-- ===================== DECODER BLOCK ===================== -->
+  <g transform="translate(760, 90)">
+    <rect x="0" y="0" width="700" height="940" rx="18" fill="#fff5f3" stroke="#7e3a35" stroke-width="1.5"/>
+    <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#7e3a35">
+      Decoder block 1 &#160; (Level 1, in=64, skip=64, out=64)
+    </text>
+    <text x="350" y="52" text-anchor="middle" class="note" fill="#666">
+      Block 2 is identical (input from bottleneck); Block 0 is identical but skips the zero-fill unpool
+    </text>
+
+    <!-- Inputs row -->
+    <rect x="40" y="74" width="220" height="60" rx="10" fill="#3a3a3a" filter="url(#shadow)"/>
+    <text x="150" y="98" text-anchor="middle" font-size="14" font-weight="bold" fill="white">x &#160;(B, 1, 400, 64)</text>
+    <text x="150" y="118" text-anchor="middle" class="small">from prev decoder; ~100 active</text>
+
+    <rect x="440" y="74" width="220" height="60" rx="10" fill="#bd8a3e" filter="url(#shadow)"/>
+    <text x="550" y="98" text-anchor="middle" font-size="14" font-weight="bold" fill="white">skip &#160;(B, 1, 400, 64)</text>
+    <text x="550" y="118" text-anchor="middle" class="small">from Enc 1 pre-pool; 400 active</text>
+
+    <!-- Upsample (zero-fill) -->
+    <rect x="40" y="160" width="220" height="68" rx="10" fill="#1d5a4a" filter="url(#shadow)"/>
+    <text x="150" y="184" text-anchor="middle" font-size="13" font-weight="bold" fill="white">_upsample_zero</text>
+    <text x="150" y="204" text-anchor="middle" class="small">target_mask = active_masks[0]</text>
+    <text x="150" y="220" text-anchor="middle" class="small">newly_active &#8594; 0 &#160; (~200 added)</text>
+
+    <!-- Skip concat -->
+    <rect x="180" y="260" width="340" height="60" rx="10" fill="#2c5d7e" filter="url(#shadow)"/>
+    <text x="350" y="285" text-anchor="middle" font-size="13" font-weight="bold" fill="white">
+      skip_proj: concat([x, skip]) &#8594; Linear (64+64 &#8594; 64)
+    </text>
+    <text x="350" y="304" text-anchor="middle" class="small">target_mask: ~200 active</text>
+
+    <!-- Time/cond row -->
+    <rect x="20" y="350" width="200" height="58" rx="10" fill="#3f3f3f" filter="url(#shadow)"/>
+    <text x="120" y="373" text-anchor="middle" font-size="13" font-weight="bold" fill="white">time_proj</text>
+    <text x="120" y="392" text-anchor="middle" class="small">SiLU &#8594; Linear 128&#8594;64</text>
+
+    <rect x="240" y="350" width="220" height="58" rx="10" fill="#4d3e1f" filter="url(#shadow)"/>
+    <text x="350" y="373" text-anchor="middle" font-size="13" font-weight="bold" fill="white">cond_proj 128&#8594;64</text>
+    <text x="350" y="392" text-anchor="middle" class="small">shared static cond emb</text>
+
+    <rect x="480" y="350" width="200" height="58" rx="10" fill="#5a59a3" filter="url(#shadow)"/>
+    <text x="580" y="373" text-anchor="middle" font-size="13" font-weight="bold" fill="white">mask cond</text>
+    <text x="580" y="392" text-anchor="middle" class="small">by target_mask</text>
+
+    <!-- Concat fusion -->
+    <rect x="120" y="430" width="460" height="70" rx="10" fill="#2c5d7e" filter="url(#shadow)"/>
+    <text x="350" y="455" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+      Concat &#8594; Linear (fusion_proj)
+    </text>
+    <text x="350" y="475" text-anchor="middle" class="small">
+      [x, time_token, cond_feats] &#8594; Linear 192 &#8594; 64
+    </text>
+    <text x="350" y="491" text-anchor="middle" class="small">x_fused masked by target_mask</text>
+
+    <!-- GNN stack -->
+    <rect x="100" y="530" width="500" height="220" rx="14" fill="#7e3a35" filter="url(#shadow)"/>
+    <text x="350" y="556" text-anchor="middle" font-size="15" font-weight="bold" fill="white">
+      GNN (num_layers = 2)
+    </text>
+    <text x="350" y="576" text-anchor="middle" class="dim">in 64 &#8594; hidden 64 &#8594; out 64</text>
+
+    <rect x="170" y="590" width="360" height="64" rx="8" fill="#a55856"/>
+    <text x="350" y="612" text-anchor="middle" font-size="13" font-weight="bold" fill="white">ResidualGNNBlock &#8595;1</text>
+    <text x="350" y="631" text-anchor="middle" class="small">Strided TAGConv K=2 (&#947;<tspan class="sub">eff</tspan>=stride<tspan class="sub">pre</tspan>)</text>
+    <text x="350" y="647" text-anchor="middle" class="small">LayerNorm &#8594; SiLU &#8594; Dropout + residual</text>
+
+    <rect x="170" y="670" width="360" height="64" rx="8" fill="#a55856"/>
+    <text x="350" y="692" text-anchor="middle" font-size="13" font-weight="bold" fill="white">ResidualGNNBlock &#8595;2</text>
+    <text x="350" y="711" text-anchor="middle" class="small">same as above</text>
+    <text x="350" y="727" text-anchor="middle" class="small">no temporal mixer (T=1)</text>
+
+    <!-- Output -->
+    <rect x="240" y="770" width="220" height="60" rx="10" fill="#3a3a3a" filter="url(#shadow)"/>
+    <text x="350" y="794" text-anchor="middle" font-size="14" font-weight="bold" fill="white">
+      out &#160;(B, 1, 400, 64)
+    </text>
+    <text x="350" y="814" text-anchor="middle" class="small">active_mask matches target (~200)</text>
+
+    <!-- Arrows -->
+    <line x1="150" y1="134" x2="150" y2="158" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 150 228 C 150 250, 240 260, 250 260" stroke="#888" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 550 134 C 550 200, 470 250, 450 260" stroke="#bd8a3e" stroke-width="2.2"
+          fill="none" stroke-dasharray="6,4" marker-end="url(#cond-arrow)"/>
+    <line x1="350" y1="320" x2="350" y2="348" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="408" x2="350" y2="428" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="120" y1="408" x2="220" y2="445" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="580" y1="408" x2="480" y2="445" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="500" x2="350" y2="528" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="654" x2="350" y2="668" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="350" y1="734" x2="350" y2="768" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <text x="350" y="860" text-anchor="middle" class="note">
+      Decoder cond_encoder is registered (checkpoint compat) but <tspan font-weight="bold">frozen</tspan>; cond_emb is shared from encoder side
+    </text>
+    <text x="350" y="878" text-anchor="middle" class="note">
+      No selector here &#8212; the decoder never re-pools; it only upsamples by restoring the encoder&#39;s skip mask
+    </text>
+    <text x="350" y="908" text-anchor="middle" font-size="13" font-weight="bold" fill="#7e3a35">
+      Decoder processes coarse&#8594;fine: block 2 &#8594; block 1 &#8594; block 0 (final block has no zero-fill: target == current)
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+# @package trainer
+defaults:
+  - trainer_wra
+  - _self_
+
+# Debug overrides: fast iteration over the small wra_debug dataset.
+name: gdm_wra_debug
+# max_epochs: 1000
+# eval_every_n_epochs: 10
+# save_checkpoint_every_n_epochs: 100
+# n_samples_per_input: 50 # 100 for more stable metrics, but 50 is better for testing statistical robustness
+
+max_num_val_batches: -1          # Evaluate on all validation batches for more stable metrics (only 2 batches in wra_debug, so this is fast)
+max_num_train_val_batches: 1
+max_num_test_batches: -1

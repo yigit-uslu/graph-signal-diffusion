@@ -1,0 +1,35 @@
+# @package _global_
+# WRA mega outdoor ultra-low-density scenario.
+#
+# A large-scale outdoor scenario with 1200 TX-RX links deployed over a 14 km x 14 km area:
+#   - 1200 links / 196 km^2 ~ 6.1 pairs/km^2 (matches medium-large ultra-low density)
+#   - Default LoS pairing geometry inherited from scenario/defaults (10-70 m, exponent 2)
+#   - Thermal noise floor (-174 dBm/Hz)
+#   - max_recursion_depth: 5 required for V3 to successfully subdivide 1200-link networks
+#
+# Density ~ 1200 / 14000^2 = 6.12e-6 links/m^2
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_mega_outdoor_ultra-low_density
+
+
+dataset:
+  num_networks: 64
+  n_links: 1200
+  deployment_range: 13500.0  # metres
+
+
+channel:
+  min_tx_rx_distance: 20.0   # metres
+  max_tx_rx_distance: 100.0  # metres
+  min_tx_tx_distance: 50.0   # metres
+
+  max_deployment_attempts: 1000
+  max_recursion_depth: 5
+
+
+system:
+  bandwidth_Hz: 40e6  # 40 MHz bandwidth

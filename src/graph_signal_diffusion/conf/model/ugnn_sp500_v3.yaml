@@ -1,0 +1,43 @@
+# @package model
+defaults:
+  - ugnn_sp500_v2
+  - _self_
+
+name: ugnn_sp500_v3
+
+config:
+  # Beat legacy cond.shared_encoder.temporal.output.mode: static runs by ablating on highest-impact knobs identified in v2 
+  gnn_config:
+    # Per-block temporal mixer instead of per-layer
+    temporal_mixer:
+      enabled: true
+      schedule: per_block
+      kernel_size: 3
+      causal: true
+      use_pointwise: false
+      dilations: [2]
+
+  embedding_config:
+    # Opt-in temporal projection from T_cond -> T_out.
+    # Legacy runs in this project used static mode, so this config is intended
+    # for fresh time_varying experiments.
+    cond:
+      shared_encoder:
+        temporal:
+          hidden_channels: [64, 64]
+          num_layers: 2
+          mixer:
+            kernel_size: 5 # Larger kernel to cover longer temporal context (T_cond=10 or 20) vs T=10 or 5.
+            causal: true
+            use_pointwise: true
+            dilations: [1, 4]
+          output:
+            mode: time_varying
+            time_varying:
+              method: learned_projection
+              learned_projection:
+                source_timesteps: ${dataset.past_window}
+                target_timesteps: ${dataset.future_window}
+
+
+

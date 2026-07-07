@@ -1,0 +1,21 @@
+# @package _global_
+# WRA medium scenario: 200-link dense networks (\approx 40 pairs / km²)
+#
+# Full-power baseline guidance (run channel_analysis to update):
+#
+#
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium_high_density
+
+dataset:
+  num_networks: 128
+  n_links: 200
+  deployment_range: 2400.0  # metres
+
+
+channel:
+  max_deployment_attempts: 1000

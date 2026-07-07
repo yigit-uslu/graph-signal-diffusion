@@ -1,0 +1,129 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+bin/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+notebooks/runs/
+
+# PyTorch & ML
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+# wandb/
+
+# Project outputs
+outputs/
+checkpoints/
+
+# Private keys
+wandb_api_key.yaml
+
+
+# Data directories (large datasets)
+# Ignore everything in data/ except raw/ subfolders
+data/*
+!data/*/
+data/*/*
+!data/*/raw/
+!data/*/raw/**
+
+# Also track cleaned SP500 data (cleaned_* subdirectories)
+!data/sp500/cleaned_*/
+!data/sp500/cleaned_*/raw/
+!data/sp500/cleaned_*/raw/**
+!data/sp500/cleaned_*/metadata.json
+
+# But ignore processed and plots subdirectories in cleaned SP500 data
+data/sp500/cleaned_*/processed*/
+data/sp500/cleaned_*/plots/
+
+# Ignore instantaneous channel files (too large for GitHub LFS >2GB limit)
+**/wra_h_instantaneous.npz
+
+# Logs
+*.log
+*.pot
+logs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# Local backup archives (never commit these)
+uncommitted_backup_*.zip
+
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/

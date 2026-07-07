@@ -1,0 +1,31 @@
+# @package _global_
+# WRA medium outdoor high-density scenario.
+#
+# A modification of wra_medium for an outdoor urban deployment:
+#   - 200 links over a larger 5500 m area → higher density (~6 pairs/km²)
+#   - TX-RX pairs span 20–100 m, remaining within the LoS regime (path-loss exponent 2)
+#   - TX-TX min spacing 50 m (relaxed from "dominance guarantee" of 200 m); deployment
+#     retries (V3, 1000 attempts) handle residual infeasible links
+#   - Thermal noise floor retained (−174 dBm/Hz); power responsiveness comes from
+#     reduced interference density relative to wra_medium
+#
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium_outdoor_ultra-low_density
+
+dataset:
+  num_networks: 128
+  n_links: 200
+  deployment_range: 5500.0  # metres
+
+channel:
+  min_tx_rx_distance: 20.0   # metres — keeps pairs out of the LoS sub-100 m regime
+  max_tx_rx_distance: 100.0  # metres — up to mid-NLoS range
+  min_tx_tx_distance: 50.0  # metres — wider spacing to preserve dominance criterion
+  max_deployment_attempts: 1000
+
+
+system:
+  bandwidth_Hz: 40e6  # 40 MHz bandwidth

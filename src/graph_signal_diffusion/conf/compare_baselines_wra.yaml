@@ -1,0 +1,194 @@
+# @package _global_
+#
+# Baseline comparison for Wireless Resource Allocation (WRA).
+#
+# Usage — FP + AP (no checkpoints needed):
+#   python -m graph_signal_diffusion.cli.compare_baselines \
+#       --config-name compare_baselines_wra \
+#       dataset.datasets='["small/pdc_npz_<hash>"]'
+#
+# Usage — FP + AP + Diffusion (requires diffusion checkpoint):
+#   python -m graph_signal_diffusion.cli.compare_baselines \
+#       --config-name compare_baselines_wra \
+#       dataset.datasets='["small/pdc_npz_<hash>"]' \
+#       baselines_to_compare='[fp,ap,diffusion]' \
+#       baselines.diffusion.checkpoint_path=outputs/.../best_model.pt
+#
+defaults:
+  - dataset: wra
+  - task: wireless_resource_allocation
+  - baseline@baselines.fp: fp
+  - baseline@baselines.ap: ap
+  - baseline@baselines.wmmse: wmmse
+  - baseline@baselines.diffusion: diffusion
+  - plot_style: wra_compare
+  - wandb: baseline_eval
+  - _self_
+
+# FP, AP, WMMSE, and Diffusion all use loader-level grouped sampling for fair
+# cross-baseline comparison. compare_baselines.py rebuilds loaders per baseline
+# using each baseline's configured n_samples.
+
+
+baselines_to_compare: [
+  fp,
+  ap,
+  diffusion
+]
+seed: 0
+
+# Shared grouped-loader sample count per network for all baselines.
+# Keep this aligned across FP/AP/WMMSE/Diffusion for fair comparisons.
+n_samples_per_network: 50
+
+# Baseline-specific overrides for this comparison run.
+baselines:
+  fp:
+    n_samples: ${n_samples_per_network}
+  ap:
+    n_samples: ${n_samples_per_network}
+  wmmse:
+    n_samples: ${n_samples_per_network}
+  diffusion:
+    n_samples: ${n_samples_per_network}
+    evaluation:
+      structural_metrics: false
+
+# Per-split batch limits for evaluation (null = use all batches)
+eval_splits:
+  test: null
+
+# Optional r_min sweep phase (disabled by default).
+# When enabled, evaluates diffusion generalization to novel r_min values
+# by creating symlinked datasets with modified r_min in network_info.json.
+r_min_sweep:
+  enabled: false
+  # Single reference dataset (backward compatible):
+  reference_dataset: "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"
+  # Multi-density sweep: set reference_datasets to a list (overrides reference_dataset).
+  # Each entry produces a per-density sweep + all densities are aggregated for
+  # combined summary plots and per-r_min percentile evolution plots.
+  # reference_datasets:
+  #   - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h0dd7afd393f9"
+  #   - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"
+  #   - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_hc1f8f7a25432"
+  #   - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_ha6c7c432ee13"
+  r_min_values: [0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
+  native_r_min_values: [0.4, 0.5, 0.6, 0.7, 0.8]
+  baseline: diffusion
+  n_samples_per_network: ${n_samples_per_network}
+  batch_size_val: 1000
+
+# --- Size/density transferability sweep (optional post-eval phase) ---
+# Evaluates the diffusion model on freshly generated target scenarios with
+# different network sizes and interference densities.
+transferability_sweep:
+  enabled: false
+  targets:
+    # Medium (200 links) — downscale from training (400 links)
+    - scenario: wra_medium_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    # Medium-large (400 links) — native/training size (fresh channels)
+    - scenario: wra_medium-large_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+      is_native: true
+    - scenario: wra_medium-large_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+      is_native: true
+    - scenario: wra_medium-large_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 800
+      is_native: true
+    - scenario: wra_medium-large_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 800
+      is_native: true
+    # Medium-large-plus (600 links) — 1.5× upscale from training (400 links)
+    - scenario: wra_medium-large-plus_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium-large-plus_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium-large-plus_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_medium-large-plus_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    # Large (800 links) — 2× upscale from training (400 links)
+    - scenario: wra_large_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_large_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_large_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    - scenario: wra_large_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 800
+    # Mega (1200 links) — 3× upscale from training (400 links)
+    - scenario: wra_mega_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 300
+    - scenario: wra_mega_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 300
+    - scenario: wra_mega_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 300
+    - scenario: wra_mega_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 300
+    # Extra-large (1600 links) — 4× upscale from training (400 links)
+    - scenario: wra_extra-large_outdoor_ultra-low_density
+      eval_num_networks: 8
+      batch_size_val: 200
+    - scenario: wra_extra-large_outdoor_low_density
+      eval_num_networks: 8
+      batch_size_val: 200
+    - scenario: wra_extra-large_outdoor_mid_density
+      eval_num_networks: 8
+      batch_size_val: 200
+    - scenario: wra_extra-large_outdoor_high_density
+      eval_num_networks: 8
+      batch_size_val: 200
+  baselines_to_compare: null      # null -> reuse parent baselines (auto-exclude AP); must be subset of parent
+  n_samples_per_network: ${n_samples_per_network}
+  batch_size_val: 8               # default; per-target override via targets[].batch_size_val
+  # r_min_values sets the r_min for all targets. Single value = one eval per target;
+  # multiple values = 2D sweep (target x r_min).
+  r_min_values: [0.6]
+  transfer_cache:
+    root: data/wra_channel_cache_transfer
+    auto_generate: true
+    require_existing_cache: false
+  transfer_data_root: data/wra_transfer
+  # Density labels for size-scaling plots (auto-computed if omitted)
+  density_labels:
+    ultra-low: "6.6"
+    low: "8.2"
+    mid: "10.1"
+    high: "11.9"
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    dir: outputs/${task.name}-${dataset.name}/comparison/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${task.name}-${dataset.name}/comparison/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

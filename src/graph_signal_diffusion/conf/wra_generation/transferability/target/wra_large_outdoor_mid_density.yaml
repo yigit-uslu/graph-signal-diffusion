@@ -1,0 +1,12 @@
+name: wra_large_outdoor_mid_density
+scenario_name: wra_large_outdoor_mid_density
+
+# Number of channel networks materialized in transfer cache for this target.
+cache_num_networks: 32
+
+# Deterministic first-N subset evaluated from the cached channels.
+eval_num_networks: 16
+
+# Required: float or "inherit".
+r_min: inherit
+

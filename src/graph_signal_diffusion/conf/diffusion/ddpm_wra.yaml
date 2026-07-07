@@ -1,0 +1,8 @@
+# @package diffusion
+defaults:
+  - ddpm
+  - _self_
+
+# WRA-specific DDPM override: clip outputs to valid power range.
+name: ddpm_wra
+clip_denoised: true

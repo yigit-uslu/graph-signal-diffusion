@@ -1,0 +1,18 @@
+# @package model
+defaults:
+  - ugnn_sp500_v3
+  - _self_
+
+name: ugnn_sp500_v3_temporal_cross_attn
+
+config:
+  embedding_config:
+    # Temporal projection + node-wise temporal cross-attention conditioning.
+    cond:
+      block_fusion:
+        mode: cross_attention
+        cross_attention:
+          heads: 4
+          dropout: 0.0
+          bias: true
+          causal: false # Cross-attention conditioning is non-causal since the entire conditioning sequence is available at each GNN layer, and we want to allow full attention across the conditioning temporal dimension.

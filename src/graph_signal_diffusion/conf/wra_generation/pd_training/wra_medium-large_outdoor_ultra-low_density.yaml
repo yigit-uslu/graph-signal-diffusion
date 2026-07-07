@@ -1,0 +1,35 @@
+# @package _global_
+# PD expert training config for the wra_medium-large_outdoor_ultra-low_density scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd \
+#               --config-name=pd_training/wra_medium-large_outdoor_ultra-low_density
+#
+# r_min = 0.6 is a moderate constraint now, calibrated from channe_analyssi output:
+#
+#
+
+defaults:
+  - /scenario/wra_medium-large_outdoor_ultra-low_density
+  - /pd_training/defaults
+  - _self_
+
+
+dataset:
+  t_chunk: 50  # use random consecutive chunks of 100 timesteps for training; full 500 timesteps for evaluation
+
+
+training:
+  batch_size: 16
+  max_epochs: 10000
+
+  r_min: 0.6
+
+  alpha_dual: 0.2
+  convergence_warmup_epochs: 2000
+  convergence_patience: 500
+
+  # Relative change of std_lambda values in the most recent ${convergence_window} epochs must be below this threshold to consider training converged.
+  dual_variance_threshold: 0.005
+
+  # Collect samples only at the end of training.
+  sample_collection_interval: .inf
+

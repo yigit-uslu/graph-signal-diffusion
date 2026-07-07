@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+  - dataset: sp100
+  - task: stock_price_forecasting
+  - baseline: diffusion
+  - wandb: baseline_eval
+  - _self_
+
+checkpoint_path: null  # Path to trained model checkpoint
+seed: 0
+
+# Per-split batch limits for evaluation (null = use all batches)
+eval_splits:
+  test: null
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    dir: outputs/${task.name}-${dataset.name}/${baseline.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${task.name}-${dataset.name}/${baseline.name}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

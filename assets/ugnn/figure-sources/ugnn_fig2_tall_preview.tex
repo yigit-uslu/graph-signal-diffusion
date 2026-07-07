@@ -1,0 +1,12 @@
+% Standalone preview wrapper for the PORTRAIT Fig 2 (ugnn_fig2_tall.tex).
+% Local preview only -- to embed in a paper, \input _ugnn_preamble + ugnn_fig2_tall
+% directly (see _ugnn_preamble.tex header).
+%   Compile (with caption):  pdflatex ugnn_fig2_tall_preview.tex
+%   Compile (no caption):    pdflatex "\def\nocaption{}\input{ugnn_fig2_tall_preview}"
+\documentclass[tikz,border=12pt,class=extarticle,17pt]{standalone}
+\usepackage{amsmath}
+\input{_ugnn_preamble}
+
+\begin{document}
+\input{ugnn_fig2_tall}
+\end{document}

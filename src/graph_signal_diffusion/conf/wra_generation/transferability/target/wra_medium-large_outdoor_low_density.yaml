@@ -1,0 +1,7 @@
+name: wra_medium-large_outdoor_low_density
+scenario_name: wra_medium-large_outdoor_low_density
+
+cache_num_networks: 32
+eval_num_networks: 16
+r_min: inherit
+

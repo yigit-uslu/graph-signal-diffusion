@@ -1,0 +1,94 @@
+# @package model
+defaults:
+  - ugnn_wra
+  - _self_
+
+name: ugnn_wra_v3_ds4
+
+
+config:
+  gnn_config:
+    K: 2  # Graph filter order (0, 1, ..., K)-hops in each GNN layer
+    num_layers: 2
+    norm_type: 'layer'
+    dropout: 0.05
+    # Match learned-ds behavior for graph convolutions.
+    use_strided_conv: true
+    strided_power_mode: 'a_plus_i'
+
+    # Pointwise sparse execution policy for node-compacted paths.
+    # - off: always dense pointwise ops
+    # - auto: packed when batch-average active ratio < threshold
+    # - on: always packed when active_mask exists
+    pointwise_sparse_mode: auto  # off | auto | on
+    pointwise_sparse_threshold: 0.75
+
+
+  pooling_config:
+    # -------------------------------------------------------------------------
+    # Topology + neighborhood aggregation (explicit; no inheritance)
+    # -------------------------------------------------------------------------
+    gamma: [1, 1, 2, 2]
+    pool_K: 0
+    selection_method: 'learned'
+    neighborhood_pooling: null
+    neighborhood_include_self: true
+    neighborhood_max_dense_gb: 12.0
+    selector_skip_gamma1_levels: true
+
+
+    # -------------------------------------------------------------------------
+    # V3 NodeSelector controls (explicit)
+    # -------------------------------------------------------------------------
+    selector_version: 'v3'
+    min_retained_nodes: 1
+    selector_temporal_reduce: 'mean'
+    selector_use_cond_fusion: true
+    selector_cond_fusion_mode: 'add'
+    selector_cond_fusion_heads: 4
+    selector_cond_fusion_dropout: 0.0
+    selector_time_emb_dim: 128
+    selector_exploration_noise: 0.0
+    selector_exploration_noise_min: 0.0
+    selector_exploration_noise_schedule: 'constant'
+    selector_exploration_noise_anneal_steps: 0
+    selector_exploration_noise_warmup_steps: 0
+    selector_collect_heavy_diagnostics: false
+
+
+    # Entropy auxiliary loss for learned selectors.
+    # Penalizes high entropy (uniform soft_mask ≈ 0.5) to push toward decisive
+    # node selection.  Previous value (1e-4) was too weak; 1e-2 provides
+    # enough gradient to overcome the diffusion-loss "include all nodes" signal.
+    entropy_reg_weight: 1.0e-2
+    entropy_reg_depth_scale: 1.0
+
+
+    # -------------------------------------------------------------------------
+    # selector_kwargs forwarded to StridedGraphMaxPool.
+    # In v3 mode, the following reach NodeSelector:
+    #   selection_mode, temperature*, collect_sampling_probe, plus the
+    #   setdefault-injected fields from PoolingConfig above.
+    #
+    # Notes:
+    # - Do not set selector_kwargs.pooling_ratio unless you intentionally want
+    #   to override per-level ratio derived from gamma (1/gamma).
+    # - selector_kwargs.cond_dim is currently popped in pooling.py for v3,
+    #   so cond_dim remains NodeSelector default (None).
+    # -------------------------------------------------------------------------
+    selector_kwargs:
+      selection_mode: 'ste'
+      temperature: 1.0
+      temperature_schedule: 'cosine'
+      temperature_min: 0.05
+      temperature_warmup_steps: 0
+      temperature_anneal_steps: 0
+      collect_sampling_probe: false
+
+
+    # NodeSelector packed score path (used when selection_method='learned').
+    selector_packed_score_mode: 'auto'   # off | auto
+    selector_packed_score_threshold: 0.75
+
+
+  compact_skip_cache: true # Cache intermediate activations for compacted nodes to speed up skip connections (at the cost of extra memory)

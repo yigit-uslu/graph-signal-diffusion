@@ -1,0 +1,3 @@
+# Local work dirs for dataset packaging/downloading — never committed.
+.package/
+.download/

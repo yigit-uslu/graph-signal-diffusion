@@ -1,0 +1,15 @@
+# @package task
+defaults:
+  - /dataset: sp100 # default dataset for this task
+  - /model: ugnn_legacy
+  - /diffusion: ddpm
+  - /trainer: trainer_sp500
+  - _self_
+  
+name: stock_price_forecasting
+_target_: graph_signal_diffusion.tasks.stock_price_forecasting.evaluator.StockPriceForecastingTask
+forecast_horizon: ${dataset.future_window}
+n_samples_per_input: ${oc.select:trainer.n_samples_per_input, 10}
+
+# Valid datasets for this task
+valid_datasets: [sp100, sp500]

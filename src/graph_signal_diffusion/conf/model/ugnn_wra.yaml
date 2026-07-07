@@ -1,0 +1,9 @@
+# @package model
+defaults:
+  - ugnn
+  - _self_
+
+# UGNN without downsampling for wireless resource allocation.
+# Inherits all shared defaults from ugnn.yaml.
+# WRA has no temporal dimension (T=1), so temporal mixer stays disabled (base default).
+name: ugnn_wra

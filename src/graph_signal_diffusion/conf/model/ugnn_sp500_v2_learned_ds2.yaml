@@ -1,0 +1,61 @@
+# @package model
+defaults:
+  - ugnn_sp500_v2
+  - _self_
+
+# UGNN with learned 2x downsampling after depth 0 for stock price forecasting v2 on SP500/SP500-cleaned.
+# Inherits from ugnn_sp500_v2.yaml, which has temporal mixer and richer conditioning temporal encoder for multi-step temporal data (T_cond=10 or 20, T=5).
+# Keeps same temporal mixer and conditioning encoder enhancements as ugnn_sp500_v2 plus learned downsampling configurations.
+# Keeps feature max-pooling as identity (pool_K=0) and depth 0 unpooled (gamma[0]=1).
+name: ugnn_sp500_v2_learned_ds2
+
+config:
+
+  gnn_config:
+    use_strided_conv: true # Enable strided convolutions with (A_base^\gamma)^k, k = 0, ..., K in encoding/decoding GNN layers.
+    strided_power_mode: 'a_plus_i' # Default 'a_plus_i' A_base = (A + I), which is more stable for deeper GNNs. Alternative: 'exact_walk' with A_base = A.
+  
+  pooling_config:
+    _target_: graph_signal_diffusion.models.ugnn.PoolingConfig
+    gamma: [1, 2, 2, 2]
+    pool_K: 0
+    selection_method: 'learned'
+    # Hidden norm for non-GNN selector head (use_pooling_gnn=false):
+    # helps keep mask-score scale more comparable across UGNN levels.
+    # Legacy behavior was effectively 'none'.
+    selector_hidden_norm_type: 'layer'
+    temporal_score_agg: 'ema' # EMA aggregation of temporal scores across diffusion steps for more stable selection.
+    ema_alpha_init: 0.8 # Initial (default: 0.8) value of (learned) EMA alpha for temporal score aggregation.
+    # Depth-aware selector controls (backward-compatible defaults):
+    entropy_reg_weight: 1.0e-3    # Base entropy regularization weight (scaled per-level by entropy_reg_depth_scale).
+    entropy_reg_depth_scale: 1.0  # Geometric scaling factor for entropy_reg_weight across selector levels.
+    score_gain_per_level: null    # Per-level score amplification (list of floats, one per active selector).
+    learnable_score_gain: false   # Whether score_gain is a learnable parameter (true) or fixed buffer (false).
+    # Suggested combination to combat deep-level score attenuation:
+    #   entropy_reg_weight: 1.0e-3
+    #   entropy_reg_depth_scale: 0.3                 # L0: 0.001, L1: 0.0003, L2: 0.00009
+    #   score_gain_per_level: [1.0, 10.0, 100.0]   # warm-start: ~10x per level to offset feature homogenization
+    #   learnable_score_gain: true                   # let the model fine-tune the gain from the warm start
+    selector_version: 'v3'
+    min_retained_nodes: 1
+    selector_temporal_reduce: 'mean'
+    selector_use_cond_fusion: true
+    selector_cond_fusion_mode: 'cross_attention'  # 'cross_attention', 'film', or 'none'
+    selector_cond_fusion_heads: 4
+    selector_cond_fusion_dropout: 0.0
+    selector_time_emb_dim: null                   # Set to embedding time_embed_dim (e.g. 128) to enable time-aware selection
+    selector_exploration_noise: 0.0
+    selector_exploration_noise_min: 0.0
+    selector_exploration_noise_schedule: 'constant'
+    selector_exploration_noise_anneal_steps: 0
+    selector_exploration_noise_warmup_steps: 0
+    selector_collect_heavy_diagnostics: false
+    selector_kwargs:
+      use_pooling_gnn: false # Disable selector GNN entirely: obtain score from encoder GNN output -> temporal aggregation + per-node MLP.
+      hidden_channels: 32
+      selection_mode: 'ste'
+      temperature: 1.0
+      temperature_schedule: 'cosine'
+      temperature_min: 0.1
+      # Resolved from trainer.selector_temperature_schedule when enabled.
+      # Keep unset here so schedule scales with total optimizer steps.

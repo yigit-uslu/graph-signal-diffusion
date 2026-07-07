@@ -1,0 +1,19 @@
+# @package model
+defaults:
+  - ugnn_wra
+  - _self_
+
+# UGNN WRA neighborhood feature pooling (MAX) with no node downsampling.
+# Parent `ugnn_wra` keeps gamma=[1,1,1,1], selection_method='stride'.
+# With pool_K>0, stage-1 neighborhood aggregation runs while stage-2 selection
+# is effectively identity at gamma=1.
+name: ugnn_wra_v3_neighborhood_max
+
+config:
+
+  pooling_config:
+    # Enable neighborhood feature aggregation.
+    pool_K: 1
+    neighborhood_pooling: 'max'
+    neighborhood_include_self: true
+    neighborhood_max_dense_gb: 12.0

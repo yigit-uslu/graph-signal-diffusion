@@ -1,0 +1,11 @@
+# @package dataset
+name: pems08
+batch_size: 16
+num_workers: 4
+root: ${hydra:runtime.cwd}/data
+
+horizon: 12
+history: 12
+normalize: zscore
+
+_target_: graph_signal_diffusion.datasets.pems08.datamodule.PEMS08Builder

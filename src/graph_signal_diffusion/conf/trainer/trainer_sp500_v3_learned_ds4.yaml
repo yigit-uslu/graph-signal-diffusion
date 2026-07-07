@@ -1,0 +1,62 @@
+# @package trainer
+defaults:
+  - trainer_sp500
+  - _self_
+
+# SP500 trainer with learned node downsampling (ARM K-equivalent settings).
+# Inherits SP500 optimizer (AdamW, lr=1e-4), best_model metrics (CRPS+MAE),
+# and eval schedule from trainer_sp500.yaml.
+# Adds: enabled temperature schedule, selector diagnostics, AMP.
+name: gdm_sp500_v3_learned_ds4
+
+max_num_val_batches: 1 # -1 to evaluate on all batches; default 10 for more robust validation metrics
+max_num_train_val_batches: 0
+max_num_test_batches: -1
+
+# Minimum LR ratio: ARM K used 0.05; SP500 base uses 0.01.
+# Keep ARM K's value to avoid over-decaying the learning rate.
+lr_scheduler:
+  min_lr_ratio: 0.05
+
+
+# ── Selector temperature schedule ─────────────────────────────────────────
+# Linear schedule with anneal_ratio=0.90 (ARM K finding).
+# With max_epochs=1000, temperature floor is reached at epoch ~900,
+# leaving ~100 epochs for post-floor adaptation.
+# ARM K showed that slow linear anneal spends 2.25x more epochs in the
+# productive T=[0.40, 0.80) range vs cosine anneal_ratio=0.60.
+selector_temperature_schedule:
+  enabled: true
+  warmup_ratio: 0.02
+  anneal_ratio: 0.90
+  warmup_steps: null
+  anneal_steps: null
+
+
+# Model diagnostics (same as WRA DS4 trainer).
+diagnose_model:
+  enabled: true
+  diagnose_selector_every_n_epochs: ${trainer.eval_every_n_epochs}
+  selector_summary_max_network_rows: -1
+  plot_sampling_heatmap:
+    enabled: true
+    plot_every_n_epochs: null
+    max_network_plots: 1
+  plot_node_stats:
+    enabled: false
+    plot_every_n_epochs: null
+    max_network_plots: 1
+  plot_hard_mask:
+    enabled: false
+    plot_every_n_epochs: null
+    max_network_plots: 1
+  plot_freq_evolution:
+    enabled: true
+    plot_every_n_epochs: null
+    max_network_plots: 1
+  plot_scalar_series:
+    enabled: true
+    plot_every_n_epochs: 5
+
+
+use_amp: true

@@ -1,0 +1,12 @@
+# @package wandb
+# Weights & Biases integration — disabled by default.
+# Enable via CLI: wandb.enabled=true
+# For sweeps, see configs/sweep_selector_temperature.yaml
+enabled: false
+project: "graph-signal-diffusion"
+entity: null   # set your own wandb entity; null = personal default
+group: null        # group related runs (e.g., same experiment, different seeds)  All runs from the same sweep share a group name, making it easy to compare different hyperparameter configurations side-by-side
+tags: []           # list of tags for filtering on the dashboard
+notes: null        # freeform notes shown on the run page
+name: null         # run name; null = wandb auto-generates one
+mode: "online"     # "online" | "offline" | "disabled"

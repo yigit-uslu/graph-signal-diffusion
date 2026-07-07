@@ -1,0 +1,41 @@
+defaults:
+  # - dataset: ???
+  # - model: ???
+  # - diffusion: ???
+  # - trainer: ???
+  - task: ???
+  - wandb: default
+  - _self_
+
+seed: 0
+
+# Optional explicit run name - controls both local dir and wandb run name
+# - If set: both wandb and local use this name (no timestamp)
+# - If null + wandb enabled: both use wandb's generated name (no timestamp)
+# - If null + wandb disabled: local uses timestamp
+run_name: null
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    # gen_run_name resolver: returns run_name when set, otherwise a coolname slug
+    dir: outputs/${task.name}-${dataset.name}/${model.name}-${diffusion.name}-${trainer.name}/${gen_run_name:${run_name}}
+  sweep:
+    dir: outputs/${task.name}-${dataset.name}/${model.name}-${diffusion.name}-${trainer.name}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  
+  # Configure logging to only write to file, not console
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers: [file]
+    disable_existing_loggers: false

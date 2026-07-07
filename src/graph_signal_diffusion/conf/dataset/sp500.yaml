@@ -1,0 +1,79 @@
+# @package dataset
+# Dataset config for SP500 stock price data
+# Used by: stock_price_forecasting, stock_price_forecasting_v2 tasks
+name: sp500
+batch_size: 16  # Training batch size
+batch_size_val: 8  # Validation/test batch size (controls timesteps per batch)
+num_workers: 8
+# Point to raw data directory
+root: ${hydra:runtime.cwd}/data/sp500
+
+pin_memory: true
+persistent_workers: true
+drop_last: false # true
+
+# "No if/elif": point directly to the dataset builder / datamodule class
+_target_: graph_signal_diffusion.datasets.sp500.datamodule.SP500Builder
+
+#### SP500 specific parameters ####
+past_window: 10
+future_window: 5
+target_column_name: "DailyLogReturn"  # Use log returns instead of normalized close prices
+pool_ratio: 0.5
+
+# Graph sparsification parameters
+top_k: null  # Keep top-K strongest edges per node (null = no limit)
+min_degree: null  # Ensure minimum degree per node (null = no minimum)
+
+# Edge weight normalization
+# Options: "none", "l1_col", "l2_col", "symmetric"
+# NOTE: "l1_col", "l2_col", "symmetric" are degree-dependent normalizations that are
+# INCOMPATIBLE with dynamic graph concatenation (dynamic_graph_period != null).
+# Use spectral_normalize_edge_weights instead when using dynamic graphs.
+edge_weight_norm: "none"
+spectral_normalize_edge_weights: false  # If true, scale edge weights so weighted adjacency spectral radius is 1
+
+# Dynamic graph parameters
+# When dynamic_graph_period is set, periodic correlation graphs are computed from
+# rolling windows and concatenated with the static graph at sample-retrieval time.
+# This captures evolving stock relationships to mitigate distributional shift.
+dynamic_graph_period: null  # Period in trading days for dynamic graph updates (null = static only)
+dynamic_graph_top_k: null   # Top-K for dynamic graph sparsification (null = use top_k)
+dynamic_graph_min_degree: null  # Min degree for dynamic graph (null = use min_degree)
+dynamic_graph_method: "pearson"  # Correlation method: "pearson" (only option for now)
+dynamic_graph_edge_weight_threshold: null  # Optional threshold on dynamic correlation edge weights (null = disabled)
+# Adaptive edge budget: cap each dynamic graph's edges relative to static graph.
+# E.g., 1.0 means dynamic graph gets at most as many edges as the static graph.
+# Per-period correlation threshold is binary-searched to respect the budget.
+dynamic_graph_edge_budget_ratio: null  # Ratio of max_dynamic_edges / static_edges (null = no budget)
+
+# Evaluation sampling
+n_samples_per_input: ${oc.select:trainer.n_samples_per_input, 1}  # Number of samples per input for evaluation (K); defaults to 1 when no trainer section
+shuffle_val: true  # true: epoch-varying random batch order (different windows each eval).
+                    # false: epoch-invariant random batch order (same windows every eval,
+                    #   so reference/"_real" metrics are constant across epochs).
+
+#### Other Dataset/dataloader options ####
+dataset_split_strategy: "chronological"  # "random" or "chronological"
+train_dataset_fraction: 0.8  # fraction of data used for training in chronological split
+n_split_chunks: 1  # Number of interleaved train/val/test chunks. 1 = standard chronological split; >1 = interleaved chunks each with 80-10-10 ratio.
+train_window_days: null  # null = full training set; positive int = use only last N training samples
+test_subsample_n: null  # null = full test set; positive int = subsample to this many windows uniformly along test_idx via np.linspace (deterministic, includes first & last). Use to get representative-but-cheap test coverage when running expensive baselines.
+
+# ← NEW: Normalization parameters
+# NOTE: Dataset normalize is DISABLED because raw CSV DailyLogReturn is already pre-scaled
+# (DailyLogReturn = raw_log_return / per_stock_std, giving std ≈ 1).
+# De-scaling is handled in task evaluation using stored scale factors.
+normalize: false  # Disabled - data is already scaled in raw CSV
+normalize_method: standardize  # or "minmax", "none"
+normalize_dim: [0, 1]  # Normalize over batch (nodes) and time dimensions
+
+# Add model-relevant parameters
+model_in_timesteps: ${.future_window}  # number of input (target) timesteps for the model
+model_obs_timesteps: ${.past_window}  # number of observed (historical) timesteps for the model
+model_out_timesteps: ${.future_window}  # number of output (pred) timesteps for the model
+model_cond_channels: 12 # number of features of the past observations used as conditioning input
+
+# RevIN space alignment: standardize target channel in x (conditioning) to match y's space.
+# Must be enabled together with diffusion.revin=true for correct RevIN behavior.
+standardize_target_in_x_for_revin: false

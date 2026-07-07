@@ -1,0 +1,42 @@
+# @package _global_
+# WRA medium-large outdoor low-density scenario.
+#
+# An outdoor deployment:
+#   - 400 links over a larger 7000 m area → lower density (~8.16 pairs/km²)
+#   - TX-RX pairs span 20–100 m, remaining within the LoS regime (path-loss exponent 2)
+#   - TX-TX min spacing 50 m (relaxed from "dominance guarantee" of 200 m); deployment
+#     retries (V3, 1000 attempts) handle residual infeasible links
+#   - Thermal noise floor retained (−174 dBm/Hz); power responsiveness comes from
+#     reduced interference density relative to wra_medium
+#   - Bandwidth 40 MHz (to effectively increase the noise floor by +6 dB)
+#
+#
+# Channel analysis Full-power baseline results (seed 42, 128 networks):
+#   
+#   
+#
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium-large_outdoor_low_density
+
+
+dataset:
+  num_networks: 32
+  n_links: 400
+  deployment_range: 7000.0  # metres
+
+
+channel:
+  min_tx_rx_distance: 20.0   # metres — keeps pairs out of the LoS sub-100 m regime
+  max_tx_rx_distance: 100.0  # metres — up to mid-NLoS range
+  min_tx_tx_distance: 50.0  # metres — wider spacing to preserve dominance criterion
+
+  max_deployment_attempts: 1000
+
+
+system:
+  bandwidth_Hz: 40e6  # 40 MHz bandwidth to effectively increase noise floor by +6 dB
+

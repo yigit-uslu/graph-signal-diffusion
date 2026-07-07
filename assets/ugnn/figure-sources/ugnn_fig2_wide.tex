@@ -1,0 +1,207 @@
+% ugnn_fig2_wide.tex -- Fig 2 (WIDE variant): one encoder block + one decoder block of the
+% U-GNN, oriented as Fig 1's U.  Both blocks are HORIZONTAL chains (straight internal arrows).
+%   Encoder (left):  V_b enters TOP-LEFT, chain Pi -> Phi -> split (Z_b out, bottom-right into
+%     the down-sampler).  The learned selector Psi_b -> TopK is STACKED under the split (Z_b
+%     drops straight in); it emits C_{b+1}.
+%   Decoder (right): chain Pi^skip -> Pi -> Phi (flat).  C_{b+1}^T Y_{b+1} rises into Pi^skip
+%     from below; the skip Z_b feeds straight in from the LEFT (direct from the encoder Z_b);
+%     Y_b exits TOP-RIGHT.
+%   Junction (centre): a small U -- C_{b+1}Z_b points DOWN, the elided deep levels (dotted U +
+%     annotation) dip below, Y_{b+1} comes UP into the up-sampler.
+%   Block inputs (sources OUTSIDE/below; the multiply is INSIDE): [U_0;K_0] (global embeddings)
+%     and D_b (nested down-sampling) meet at a (x) node INSIDE the block -> D_b[U_0;K_0] -> Pi
+%     (and used by Psi); D_b ALSO feeds the GNN Phi; the graph shift S -> Phi.
+% Drawing only: \input AFTER _ugnn_preamble.tex.  begingroup..endgroup keeps defs local.
+\begingroup
+\def\widescale{1.0}%
+\scalebox{\widescale}{%
+\begin{tikzpicture}[
+  >={Stealth[length=2.4mm]},
+  rounded corners=2pt,
+  proc/.style    = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=4.7cm, minimum height=1.15cm, inner sep=2pt,
+                    font=\small, fill=gnncol},
+  fuseb/.style   = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=1.6cm, minimum height=1.2cm, inner sep=2pt,
+                    font=\small, fill=projcol},
+  selb/.style    = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=3.0cm, minimum height=1.15cm, inner sep=2pt,
+                    font=\small, fill=selcol},
+  sampb/.style   = {draw, very thick, rounded corners=2pt, align=center,
+                    minimum width=1.9cm, minimum height=0.95cm, inner sep=2pt,
+                    font=\small, fill=white},
+  topkb/.style   = {draw, thick, rounded corners=2pt, align=center,
+                    minimum width=2.0cm, minimum height=1.0cm, inner sep=2pt,
+                    font=\small, fill=white},
+  condb/.style   = {draw, thick, rounded corners=2pt, align=center,
+                    inner sep=3pt, font=\footnotesize, fill=black!5},
+  mulb/.style    = {draw, thick, circle, inner sep=0pt, minimum size=0.55cm,
+                    font=\small, fill=white},
+  encbg/.style   = {rounded corners=9pt, fill=red!7,  draw=red!30!gray, thick, inner sep=10pt},
+  decbg/.style   = {rounded corners=9pt, fill=blue!7, draw=blue!30!gray, thick, inner sep=10pt},
+  splitdot/.style= {circle, fill=black, inner sep=0pt, minimum size=1.8mm},
+  branchdot/.style={circle, fill=gray!55!black, inner sep=0pt, minimum size=1.3mm},
+  sig/.style     = {-{Stealth[length=2.4mm]}, very thick},
+  feat/.style    = {-{Stealth[length=2.0mm]}, thick, teal!55!black},
+  ctrl/.style    = {-{Stealth[length=2.0mm]}, thick, densely dashed, orange!75!black},
+  skip/.style    = {-{Stealth[length=2.0mm]}, thick, dashed, violet!80!black},
+  condarr/.style = {-{Stealth[length=1.8mm]}, thick, gray!55!black, densely dashed},
+  elbl/.style    = {font=\footnotesize, inner sep=1.6pt, fill=white, fill opacity=0.85, text opacity=1},
+  hd/.style      = {font=\small\bfseries},
+]
+% ---- vertical levels (single source of truth) -----------------------
+\def\Sy{0.8}                        % main chains (block mid-height)
+\def\yTop{2.05}                     % I/O top corners: V_b in / Y_b out (raised so the I/O annotations clear the panels)
+\def\Ay{1.6}                        % aux top-band level (legacy; panel top now driven by \yPanT)
+\def\yPanT{2.75}                    % explicit panel TOP edge anchor (RAISED -> taller top band)
+\pgfmathsetmacro{\Sabove}{4.2}      % graph-shift S boxes ABOVE panels; S->top-border gap matched to conditioning->bottom-border gap (~0.83cm)
+\def\yHdr{2.75}                     % block headers INSIDE the panels, north-anchored at the top corners (= \yPanT)
+\def\yPsi{-1.5}                     % selector Psi_b (stacked under the split; un-squeezed)
+\pgfmathsetmacro{\Bmul}{-2.5}       % (x) combine node INSIDE the block (under Pi; riser forks to Psi) -- shifted DOWN
+\def\Bsel{-3.45}                    % TopK + junction down/up samplers (LOWERED: more room for Psi/TopK)
+\pgfmathsetmacro{\panB}{\Bsel-0.7}  % shared panel bottom edge (just below TopK / the samplers)
+\pgfmathsetmacro{\Bcond}{\panB-1.5} % conditioning SOURCE boxes ([U0;K0], D_b, S) OUTSIDE/below (margin from panel)
+\pgfmathsetmacro{\Bu}{\Bsel-1.5}    % bottom of the SOLID U arms (C_{b+1}Z_b down / Y_{b+1} up); dotted rectangle below
+\pgfmathsetmacro{\Bdeep}{\Bsel-4.2} % dotted RECTANGULAR-U bottom (even deeper, squared off)
+\pgfmathsetmacro{\Cann}{(\Bu+\Bdeep)/2}% "rest of U-GNN" annotation (centred INSIDE the rectangular U)
+% ---- horizontal layout ----------------------------------------------
+% Encoder chain (left): Pi -> Phi -> split.  Selector STACKED under the split.
+\def\gZb{4.4}\def\gEpi{4.1}\def\gEio{3.2}% gEio 2.5->3.2: V_b input origin further LEFT (annotation clears the panel)
+\def\xEsp{-6.2}                                  % split-dot = encoder inner-right edge
+\pgfmathsetmacro{\xEgnn}{\xEsp-\gZb}             % encoder GNN
+\pgfmathsetmacro{\xEpi}{\xEgnn-\gEpi}            % encoder projection (panel inner-left)
+\pgfmathsetmacro{\xEin}{\xEpi-\gEio}             % V_b input riser (top-left), OUTSIDE panel
+\pgfmathsetmacro{\xEpanL}{\xEpi-1.3}             % encoder panel LEFT-edge anchor (expand panel leftward)
+\pgfmathsetmacro{\xEpsi}{\xEsp}                  % selector Psi_b / TopK : under the split
+% conditioning x's (left side, under Pi/Phi; far from the selector -> no S/Z_b crossover)
+\pgfmathsetmacro{\xEuk}{\xEpi}                   % [U0;K0] directly under Pi/(x) -> vertical into (x)
+\pgfmathsetmacro{\xEdb}{\xEgnn+0.6}              % D_b SOURCE under the D_b glyph in Phi^E (post-swap ...;D_b,Theta) -> vertical up
+\pgfmathsetmacro{\xEsin}{\xEgnn-0.15}            % S SOURCE (ABOVE panel) over the S glyph in Phi^E -> downward arrow
+\pgfmathsetmacro{\xEhdr}{-3.9}                    % encoder header RIGHT edge -> top-right corner (moved right; extends panel right ~0.4cm, clears S arrow + makes room for the C_{b+1} label)
+\def\xEdown{-1.2}                                % down-sampling : junction (shifted +0.4 right -> more margin from encoder panel)
+% Decoder chain (right, FLAT): Pi^skip -> Pi -> Phi.
+\def\xDup{2.8}                                   % up-sampling : junction (shifted +0.4 right, equal to the down-sampler)
+\def\xDskip{6.4}                                 % Pi^skip (decoder inner-left)
+\pgfmathsetmacro{\xDpi}{\xDskip+3.0}             % decoder projection (wider Pi^skip -> Pi gap)
+\pgfmathsetmacro{\xDgnn}{\xDpi+5.2}              % decoder GNN (wider Pi -> Phi^D gap; single-line box)
+\pgfmathsetmacro{\xDout}{\xDgnn+4.9}             % Y_b output riser further RIGHT (symmetric to V_b input; +0.7)
+\pgfmathsetmacro{\xDpanR}{\xDgnn+2.9}            % decoder panel RIGHT-edge anchor (expand panel rightward)
+\pgfmathsetmacro{\xDpanL}{\xDskip-1.3}           % decoder panel LEFT-edge anchor (expand panel leftward; matches encoder)
+\pgfmathsetmacro{\xDuk}{\xDpi}                   % decoder [U0;K0] under Pi/(x)
+\pgfmathsetmacro{\xDdb}{\xDgnn+0.6}              % decoder D_b SOURCE under the D_b glyph in Phi^D (post-swap) -> vertical up
+\pgfmathsetmacro{\xDsin}{\xDgnn-0.15}            % decoder S SOURCE (ABOVE panel) over the S glyph in Phi^D -> downward arrow
+\pgfmathsetmacro{\xUmid}{(\xEdown+\xDup)/2}      % centre of the deep U
+
+% ===================== ENCODER (left; signal DESCENDS into the U) =====
+\node[hd, anchor=north east] (Ehdr) at (\xEhdr, \yHdr) {Encoder block (depth $b$)};
+\node[fuseb] (Epi)  at (\xEpi,  \Sy) {$\Piblk{b}$};
+\node[proc]  (Egnn) at (\xEgnn, \Sy) {$\PhiEnc{b}(\bbP_b,\bbS;\bbD_b,\thetaenc_b)$};
+\node[splitdot] (Esp) at (\xEsp, \Sy) {};
+% selector STACKED under the split: Psi_b (upper) -> TopK (lower)
+\node[selb]  (Epsi)  at (\xEpsi, \yPsi) {$\Psisel{b}(\bbZ_b,\bbD_b\UK;\thetasel_{b})$};
+\node[topkb] (Etopk) at (\xEpsi, \Bsel) {$\mathrm{TopK}$};
+
+% main input V_b : enters at the TOP-LEFT from OUTSIDE; the bend is far from the box, then a
+% long straight run into Pi.west.
+\draw[sig] (\xEin,\yTop) |- (Epi.west)
+           node[elbl,pos=0.16,above=1pt,align=center] (Vlab) {$\bbV_b{=}\bbC_b\bbZ_{b-1}$\\{\scriptsize(from depth $b{-}1$)}};
+% top-row chain (straight)
+\draw[sig] (Epi.east)  -- (Egnn.west) node[elbl,pos=0.5,above=2.5pt]{$\bbP_b$};
+\draw[sig] (Egnn.east) -- (Esp)       node[elbl,pos=0.55,above=2.5pt]{$\bbZ_b$};
+% selector input: Z_b drops STRAIGHT DOWN from the split into Psi.north (no crossing)
+\draw[feat] (Esp) -- (Epsi.north) node[elbl,pos=0.55,right=1pt]{$\bbZ_b$};
+% scores v_b : Psi_b -> TopK (the un-merge link), straight down
+\draw[feat] (Epsi.south) -- (Etopk.north) node[elbl,pos=0.5,right=1pt]{$\bbvv_b$};
+
+% --- conditioning (sources OUTSIDE/below; multiply INSIDE).  [U0;K0] (x) D_b -> D_b[U0;K0] -> Pi
+%     (used by Psi); D_b ALSO -> Phi ; S -> Phi. ---
+\node[condb] (Euk)  at (\xEuk,  \Bcond)  {$\UK$};
+\node[condb] (Edb)  at (\xEdb,  \Bcond)  {$\bbD_b$};
+\node[condb] (Esin) at (\xEsin, \Sabove) {$\bbS$};   % S now ABOVE the panel (graph shift fed from the top)
+\node[mulb]  (Emul) at (\xEpi,  \Bmul)   {$\times$};
+\node[branchdot] (Edbk) at (\xEdb,\Bmul) {};   % D_b branch (to (x) and to Phi)
+\node[font=\scriptsize\itshape, text=black!60, anchor=north] at (Euk.south) {global embeddings};
+\draw[condarr] (Euk.north) -- (Emul.south);          % [U0;K0] -> (x)  [vertical]
+\draw[condarr] (Edb.north) -- (Egnn.south -| Edb);   % D_b -> Phi, vertical into the D_b glyph (post-swap position)
+\draw[condarr] (Edbk) -- (Emul.east);                % D_b -> (x)  [horizontal spur off the branch]
+\draw[condarr] (Emul.north) -- (Epi.south) node[elbl,pos=0.53]{$\bbD_b\UK$};  % D_b[U0;K0] -> Pi [vertical]
+\draw[condarr] (Esin.south) -- (Egnn.north -| Esin);  % S -> Phi from ABOVE, vertical into the S glyph
+% D_b[U0;K0] ALSO feeds the selector explicitly: fork the (x)->Pi riser at Psi's level, run right
+\node[branchdot] (Eskk) at (\xEpi,\yPsi) {};
+\draw[condarr] (Eskk) -- (Epsi.west);
+
+% ---------- down-sampling: OUTSIDE the panel, in the junction ----------
+\node[sampb] (Edown) at (\xEdown, \Bsel) {$\downarrow\ \bbC_{b+1}$};
+\draw[sig]  (Esp) -| (Edown.north);                                       % Z_b -> sampler top
+\draw[ctrl] (Etopk.east) -- (Edown.west) node[elbl,pos=0.3,above=1pt]{$\bbC_{b+1}$};  % label shifted LEFT so its opaque bg stays inside the panel
+
+% ===================== DEEP JUNCTION (a small U dipping below) ========
+\node[sampb] (Dup) at (\xDup, \Bsel) {$\uparrow\ \bbC_{b+1}^{\top}$};
+\draw[sig] (Edown.south) -- (\xEdown,\Bu) node[elbl,pos=0.55,left=1pt]{$\bbC_{b+1}\bbZ_b$};  % DOWN
+\draw[sig] (\xDup,\Bu) -- (Dup.south) node[elbl,pos=0.45,right=1pt]{$\bbY_{b+1}$};            % UP
+\draw[densely dotted, line width=1pt, black!65, sharp corners]
+     (\xEdown,\Bu) -- (\xEdown,\Bdeep) -- (\xDup,\Bdeep) -- (\xDup,\Bu);
+\node[align=center, font=\scriptsize\itshape, text=black!70] at (\xUmid,\Cann)
+     {the rest of the U-GNN\\(depths $b{+}1\!\dots\!B$)};
+
+% ===================== DECODER (right; FLAT chain, ascends out of the U) ===
+\node[hd, anchor=north west] (Dhdr) at (\xDpanL, \yHdr) {Decoder block (depth $b$)};
+\node[fuseb] (Dskip) at (\xDskip,\Sy) {$\Piskip{b}$};
+\node[fuseb] (Dpi)   at (\xDpi,  \Sy) {$\Piblk{b}$};
+\node[proc]  (Dgnn)  at (\xDgnn, \Sy) {$\PhiDec{b}(\bbP_b,\bbS;\bbD_b,\thetadec_b)$};
+
+% up-sampled input : rises from the up-sampler STRAIGHT UP into Pi^skip.south (bend far below)
+\draw[sig] (Dup.east) -| (Dskip.south)
+           node[elbl,pos=0.72,right=1pt]{$\bbC_{b+1}^{\top}\bbY_{b+1}$};
+% flat chain (straight)
+\draw[sig] (Dskip.east) -- (Dpi.west) node[elbl,pos=0.5,above=2.5pt]{$\bbV_b$};
+\draw[sig] (Dpi.east)   -- (Dgnn.west) node[elbl,pos=0.5,above=2.5pt]{$\bbP_b$};
+% conditioning (mirror of the encoder)
+\node[condb] (Duk)  at (\xDuk,  \Bcond)  {$\UK$};
+\node[condb] (Ddb)  at (\xDdb,  \Bcond)  {$\bbD_b$};
+\node[condb] (Dsin) at (\xDsin, \Sabove) {$\bbS$};   % S now ABOVE the panel (mirror of the encoder)
+\node[mulb]  (Dmul) at (\xDpi,  \Bmul)   {$\times$};
+\node[branchdot] (Ddbk) at (\xDdb,\Bmul) {};
+\node[font=\scriptsize\itshape, text=black!60, anchor=north] at (Duk.south) {global embeddings};
+\draw[condarr] (Duk.north) -- (Dmul.south);
+\draw[condarr] (Ddb.north) -- (Dgnn.south -| Ddb);   % D_b -> Phi, vertical into the D_b glyph (post-swap)
+\draw[condarr] (Ddbk) -- (Dmul.east);
+\draw[condarr] (Dmul.north) -- (Dpi.south) node[elbl,pos=0.53]{$\bbD_b\UK$};
+\draw[condarr] (Dsin.south) -- (Dgnn.north -| Dsin);  % S -> Phi from ABOVE, vertical into the S glyph
+% output Y_b : exits Phi.east straight, the up-bend is far to the right (outside); annotation
+% sits ABOVE the arrow tip
+\draw[sig] (Dgnn.east) -- (\xDout,\Sy) -- (\xDout,\yTop);
+\node[elbl, align=center, above=2pt] (Ylab) at (\xDout,\yTop) {$\bbY_b$\\{\scriptsize(to depth $b{-}1$)}};
+
+% ===================== cross-links ==================================
+% skip Z_b : DIRECT horizontal feed.  Z_b fans out at the down-sampler corner (branch dot) and runs
+% straight across into the decoder Pi^skip.west -- no up-right-down arc.
+\node[branchdot] (Zskbr) at (\xEdown,\Sy) {};
+\draw[skip] (Zskbr) -- (Dskip.west) node[elbl,pos=0.45,above=1pt]{skip $\bbZ_b$};
+
+% ===================== half-panel tints (block-internal only) ====
+\begin{scope}[on background layer]
+  \node[encbg, fit={(Ehdr)(Epi)(Egnn)(Esp)(Epsi)(Etopk)(Emul)(\xEpanL,\yPanT)(\xEsp,\panB)}] {};
+  \node[decbg, fit={(Dhdr)(Dskip)(Dpi)(Dgnn)(Dmul)(\xDpanL,\yPanT)(\xDpanR,\Sy)(\xDgnn,\panB)}] {};
+\end{scope}
+
+% ===================== caption (toggle) =============================
+\ifshowcaption
+\node[font=\footnotesize, align=center, text width=18cm] at (0,\Cann-4.4)
+  {\textbf{Fig.~2.} Block interface (wide), oriented as Fig.~1's U. \emph{Encoder} (left): $\bbV_b$
+   enters at the top left, the chain $\Piblk{b}\!\to\!\boldsymbol\Phi^{\mathrm E}_b\!\to$ split runs
+   along the top, and $\bbZ_b$ exits at the bottom right into the down-sampler; the learned selector
+   $\Psisel{b}\!\to\!\mathrm{TopK}$ is stacked under the split and emits $\bbC_{b+1}$.
+   \emph{Junction} (centre): the down-sampled $\bbC_{b+1}\bbZ_b$ descends into the elided deep levels
+   (depths $b{+}1,\dots,B$, a small U) and $\bbY_{b+1}$ rises back into the up-sampler.
+   \emph{Decoder} (right): $\Piskip{b}\!\to\!\Piblk{b}\!\to\!\boldsymbol\Phi^{\mathrm D}_b$, with the
+   up-sampled input rising into $\Piskip{b}$ and $\bbY_b$ exiting at the top right. The skip $\bbZ_b$
+   feeds straight across into $\Piskip{b}$; the samplers reuse $\bbC_{b+1}$ (transposed). Inside each block the global
+   embeddings $\UK$ and the nested down-sampling $\bbD_b$ multiply ($\times$) to $\bbD_b\UK$ for
+   $\Piblk{b}$ and $\Psisel{b}$; $\bbD_b$ also parametrises $\boldsymbol\Phi_b$, which the graph
+   shift $\bbS$ feeds.};
+\fi
+
+\end{tikzpicture}%
+}% end \scalebox
+\endgroup

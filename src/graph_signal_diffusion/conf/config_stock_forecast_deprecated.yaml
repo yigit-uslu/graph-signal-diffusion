@@ -1,0 +1,33 @@
+defaults:
+  - dataset: sp100
+  - model: ugnn # canonical UGNN config
+  - diffusion: ddpm
+  - trainer: default
+  - task: stock_price_forecasting
+  - _self_
+
+seed: 0
+
+# Hydra configuration for organized output directories
+hydra:
+  run:
+    dir: outputs/${task.name}/${dataset.name}/${diffusion.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${task.name}/${dataset.name}/${diffusion.name}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  
+  # Configure logging to only write to file, not console
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers: [file]
+    disable_existing_loggers: false

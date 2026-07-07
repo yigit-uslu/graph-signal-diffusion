@@ -1,0 +1,63 @@
+# @package model
+defaults:
+  - ugnn_sp500_v2_learned_ds2
+  - _self_
+
+# ---------------------------------------------------------------------------
+# UGNN SP500 V3 + Neighborhood Max-Pooling
+# ---------------------------------------------------------------------------
+#
+# Purpose:
+#   Exercise the NeighborhoodFeaturePooling code path with MAX aggregation
+#   combined with V3 learned node selection on the SP500/SP500-cleaned dataset.
+#
+#   Inherits all V3 selector settings from ugnn_sp500_v2_learned_ds2.yaml
+#   (selector_version: v3, cross-attention conditioning fusion, STE selection,
+#   cosine temperature schedule, EMA temporal score aggregation).
+#
+#   The key change from the parent config is pool_K > 0, which activates
+#   NeighborhoodFeaturePooling inside StridedGraphMaxPool for multi-hop
+#   feature aggregation BEFORE node selection.
+#
+# Two-stage pipeline per pooling layer:
+#   Stage 1: NeighborhoodFeaturePooling — max-pool features over the union
+#            of k·stride-hop neighborhoods (k = 0, 1, …, pool_K).
+#   Stage 2: V3 learned node selector — select which nodes to retain.
+#
+# Adjustable knobs:
+#   pool_K: Number of neighborhood scales (default 1).
+#       - K=0: no neighborhood aggregation (identity, same as parent config).
+#       - K=1: 0-hop + stride_input-hop (2 scales, moderate).
+#       - K=2: 0-hop + stride-hop + 2·stride-hop (3 scales, more context
+#              but ~4x larger dense intermediate than K=1).
+#
+#   neighborhood_pooling: 'max' or 'avg'.
+#       - 'max': retains strongest feature per neighborhood (default).
+#       - 'avg': smooth neighborhood mean (see ..._neighborhood_avg.yaml).
+#
+#   neighborhood_include_self: Whether nodes include themselves in the
+#       neighborhood union. Default true. Set false to aggregate ONLY from
+#       neighbors (excludes self-loop), which forces the pooled value to
+#       come entirely from the surrounding context.
+#
+#   neighborhood_max_dense_gb: Memory guard for the (B, T, N, N, F) dense
+#       intermediate. Raises RuntimeError if exceeded. Default 8.0 GB.
+#       For SP500 (N=488), K=1 at batch_size=2, T=30, F=32 projects to
+#       ~17 GB with full dense, but the boolean adjacency is much smaller.
+#       Increase if needed for larger batches.
+#
+#   All parent knobs (selector temperature, entropy regularization, score
+#   gain, EMA alpha, etc.) remain tunable — see ugnn_sp500_v2_learned_ds2.yaml.
+# ---------------------------------------------------------------------------
+name: ugnn_sp500_v3_neighborhood_max
+
+config:
+
+  pooling_config:
+    # Activate neighborhood feature aggregation (parent uses pool_K=0).
+    pool_K: 1
+
+    # --- Neighborhood Feature Pooling knobs ---
+    neighborhood_pooling: 'max'         # Max aggregation over multi-hop neighborhoods.
+    neighborhood_include_self: true      # Include self-loop in neighborhood union.
+    neighborhood_max_dense_gb: 8.0       # Memory guard (GB) for dense (B,T,N,N,F) intermediate.

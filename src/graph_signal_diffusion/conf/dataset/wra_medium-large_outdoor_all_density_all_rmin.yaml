@@ -1,0 +1,44 @@
+# @package dataset
+defaults:
+  - wra
+  - _self_
+
+name: wra
+scenario: medium-large_outdoor_all_density_all_rmin
+datasets:
+  # --- ultra-low density (deployment_range=7800m) ---
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h51d52d48c355"  # r_min=0.4
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h54416c2fba47"  # r_min=0.5
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h0dd7afd393f9"  # r_min=0.6
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_h56b70909ae82"  # r_min=0.7
+  - "medium-large_outdoor_ultra-low_density/wrpc_v1_primal_history_k200_he1da74a5635c"  # r_min=0.8
+  # --- low density (deployment_range=7000m) ---
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_hd8d168fe5810"  # r_min=0.4
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h26dde690eca5"  # r_min=0.5
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h43d4a26a4203"  # r_min=0.6
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h0f9e518a51ae"  # r_min=0.7
+  - "medium-large_outdoor_low_density/wrpc_v1_primal_history_k200_h391ad7cf511b"  # r_min=0.8
+  # --- mid density (deployment_range=6300m) ---
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_haa4d4fdc8221"  # r_min=0.4
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_h3fddacd0eadc"  # r_min=0.5
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_hc1f8f7a25432"  # r_min=0.6
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_h4ab03934d654"  # r_min=0.7
+  - "medium-large_outdoor_mid_density/wrpc_v1_primal_history_k200_h943a82aae11f"  # r_min=0.8
+  # --- high density (deployment_range=5800m) ---
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_h9c4284c3b7ea"  # r_min=0.4
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_h5b791d7f2908"  # r_min=0.5
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_ha6c7c432ee13"  # r_min=0.6
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_h26614d2f6640"  # r_min=0.7
+  - "medium-large_outdoor_high_density/wrpc_v1_primal_history_k200_h9681f9e137e7"  # r_min=0.8
+
+model_cond_channels: 3  # r_min appended as third node feature
+
+# 20 sub-datasets x 32 networks x 200 samples = 128,000 total samples.
+# Training: 128,000 * 0.625 = 80,000 samples; Val: 128,000 * 0.125 = 16,000
+batch_size: 1000       # 80,000 / 1000 = 80 iterations per epoch
+batch_size_val: 2000   # 16,000 * (50 / 200) / 2000 = 2 val batches per epoch
+
+# 5:1:2 split: each sub-dataset independently splits by network ID
+train_fraction: 0.625  # First 5/8 of networks in each sub-dataset
+val_fraction: 0.125    # Next 1/8th
+test_fraction: 0.25    # Last 1/4th

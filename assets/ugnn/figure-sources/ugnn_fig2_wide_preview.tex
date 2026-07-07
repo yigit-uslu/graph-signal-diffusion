@@ -1,0 +1,16 @@
+% Standalone preview wrapper for the WIDE Fig 2 (ugnn_fig2_wide.tex).
+% Local preview only -- to embed in a paper, \input _ugnn_preamble + ugnn_fig2_wide
+% directly (see _ugnn_preamble.tex header).
+%   Compile (with caption):  pdflatex ugnn_fig2_wide_preview.tex
+%   Compile (no caption):    pdflatex "\def\nocaption{}\input{ugnn_fig2_wide_preview}"
+% NB: no `tikz` class option here -- the body wraps its tikzpicture in \scalebox
+% (to match Fig 1's width), and standalone's per-tikzpicture page shipout chokes on a
+% boxed picture.  Loading tikz manually + cropping the document body works instead.
+\documentclass[border=12pt,class=extarticle,17pt]{standalone}
+\usepackage{tikz}
+\usepackage{amsmath}
+\input{_ugnn_preamble}
+
+\begin{document}
+\input{ugnn_fig2_wide}
+\end{document}

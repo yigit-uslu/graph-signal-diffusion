@@ -1,0 +1,17 @@
+# @package _global_
+# PD sample collection config for the wra_medium-large_outdoor_ultra-low_density scenario.
+# Use with:
+#   python -m graph_signal_diffusion.cli.wra.build_diffusion_dataset \
+#     --config-name=pd_collection/wra_medium-large_outdoor_ultra-low_density \
+#     input_dir=/path/to/pd_run
+
+defaults:
+  - /pd_training/wra_medium-large_outdoor_ultra-low_density
+  - /pd_collection/defaults
+  - _self_
+
+# Large graphs: skip writing H_instantaneous to disk (saves ~GB of storage).
+# The evaluator will generate H on-demand from the channel cache instead.
+output:
+  h_instantaneous:
+    enabled: false

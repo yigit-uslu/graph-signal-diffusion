@@ -1,0 +1,33 @@
+# @package _global_
+# WRA medium-large-plus outdoor ultra-low-density scenario.
+#
+# 600 tx-rx links over a 9.5 km x 9.5 km area:
+#   - Density ~ 6.6 pairs/km²
+#   - TX-RX pairs span 20-100 m (LoS regime, path-loss exponent 2)
+#   - TX-TX min spacing 50 m; deployment retries (V3) handle infeasible placements
+#   - Bandwidth 40 MHz
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium-large-plus_outdoor_ultra-low_density
+
+
+dataset:
+  num_networks: 64
+  n_links: 600
+  deployment_range: 9500.0  # metres
+
+
+channel:
+  min_tx_rx_distance: 20.0   # metres
+  max_tx_rx_distance: 100.0  # metres
+  min_tx_tx_distance: 50.0   # metres
+
+  max_deployment_attempts: 1000
+  max_recursion_depth: 4
+
+
+system:
+  bandwidth_Hz: 40e6

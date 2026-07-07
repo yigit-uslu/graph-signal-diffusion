@@ -1,0 +1,31 @@
+# @package model
+defaults:
+  - ugnn_wra_v3_ds8
+  - _self_
+
+# ds8 backbone + DDPM/EDM-style output head, ported from
+# sociable-frigatebird-619 (ugnn_sp500_v3_ds8_norm_act_head).
+#
+# Replaces the default single-Linear head with:
+#   LayerNorm(final_channels) -> SiLU -> Linear(final_channels, out_channels)
+# and zero-initializes the final linear's weight + bias.
+#
+# Rationale:
+#   - LayerNorm over the channel dim only (T and N are NOT mixed; each
+#     (batch, timestep, node) position is normalized independently) stabilizes
+#     the input scale to the final linear. Temporal-agnostic, so it behaves
+#     identically for WRA's single snapshot (T=1).
+#   - SiLU matches DDPM/EDM/ADM output-head convention.
+#   - zero_init makes the untrained head emit exactly zero. WRA uses
+#     diffusion.parameterization='eps', so eps_hat ~= 0 at init and the first
+#     DDIM step is approximately the identity — the canonical
+#     convergence-friendly starting point.
+name: ugnn_wra_v3_ds8_norm_act_head
+
+config:
+  output_head_config:
+    _target_: graph_signal_diffusion.models.ugnn.OutputHeadConfig
+    mode: norm_act_linear
+    norm_type: layer
+    activation: silu
+    zero_init: true

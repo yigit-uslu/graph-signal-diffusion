@@ -1,0 +1,23 @@
+# @package _global_
+# PD expert training config for the wra_medium scenario.
+# Use with: python -m graph_signal_diffusion.cli.wra.train_pd --config-name=pd_training/wra_medium
+
+defaults:
+  - /scenario/wra_medium
+  - /pd_training/defaults
+  - _self_
+
+training:
+  batch_size: 16 # 32 
+  max_epochs: 20000
+
+  # Primal-dual hyperparameters
+  r_min: 0.8
+  alpha_dual: 0.1
+
+  sample_collection_interval: .inf # Collect samples only at the end of the training run, bypassing intermediate collections.
+
+  convergence_patience: 500 # Increased patience in return for easier convergence criteria.
+
+
+# pd_config_name, pd_run_key, and hydra output dirs are inherited from pd_training/defaults.

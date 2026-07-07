@@ -1,0 +1,8 @@
+# @package diffusion
+defaults:
+  - ddim
+  - _self_
+
+# WRA-specific DDIM overrides: clip
+name: ddim_wra
+clip_denoised: true

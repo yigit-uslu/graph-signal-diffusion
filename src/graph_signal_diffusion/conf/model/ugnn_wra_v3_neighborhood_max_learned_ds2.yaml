@@ -1,0 +1,82 @@
+# @package model
+defaults:
+  - ugnn_wra_v3_neighborhood_max
+  - _self_
+
+# UGNN WRA: neighborhood max-pooling + learned 2x downsampling (after depth 0)
+# with V3 selector settings.
+name: ugnn_wra_v3_neighborhood_max_learned_ds2
+
+config:
+
+  gnn_config:
+    # Match learned-ds2 behavior for graph convolutions.
+    use_strided_conv: true
+    strided_power_mode: 'a_plus_i'
+
+  pooling_config:
+    # -------------------------------------------------------------------------
+    # Topology + neighborhood aggregation (explicit; no inheritance)
+    # -------------------------------------------------------------------------
+    gamma: [1, 1, 2, 1]
+    pool_K: 1
+    selection_method: 'learned'
+    neighborhood_pooling: 'max'
+    neighborhood_include_self: true
+    neighborhood_max_dense_gb: 12.0
+    selector_skip_gamma1_levels: true
+
+    # -------------------------------------------------------------------------
+    # V3 NodeSelector controls (explicit)
+    # -------------------------------------------------------------------------
+    selector_version: 'v3'
+    min_retained_nodes: 1
+    selector_temporal_reduce: 'mean'
+    selector_use_cond_fusion: true
+    selector_cond_fusion_mode: 'add'
+    selector_cond_fusion_heads: 4
+    selector_cond_fusion_dropout: 0.0
+    selector_time_emb_dim: 128
+    selector_exploration_noise: 0.0
+    selector_exploration_noise_min: 0.0
+    selector_exploration_noise_schedule: 'constant'
+    selector_exploration_noise_anneal_steps: 0
+    selector_exploration_noise_warmup_steps: 0
+    selector_collect_heavy_diagnostics: false
+
+    # Entropy auxiliary loss for learned selectors.
+    # Penalizes high entropy (uniform soft_mask ≈ 0.5) to push toward decisive
+    # node selection.  Previous value (1e-4) was too weak; 1e-2 provides
+    # enough gradient to overcome the diffusion-loss "include all nodes" signal.
+    entropy_reg_weight: 1.0e-2
+    entropy_reg_depth_scale: 1.0
+
+    # -------------------------------------------------------------------------
+    # Legacy selector knobs (explicitly pinned for clarity; ignored in v3 path)
+    # -------------------------------------------------------------------------
+    temporal_score_agg: 'mean'
+    ema_alpha_init: 0.8
+    selector_hidden_norm_type: 'layer'
+    score_gain_per_level: null
+    learnable_score_gain: false
+
+    # -------------------------------------------------------------------------
+    # selector_kwargs forwarded to StridedGraphMaxPool.
+    # In v3 mode, the following reach NodeSelector:
+    #   selection_mode, temperature*, collect_sampling_probe, plus the
+    #   setdefault-injected fields from PoolingConfig above.
+    #
+    # Notes:
+    # - Do not set selector_kwargs.pooling_ratio unless you intentionally want
+    #   to override per-level ratio derived from gamma (1/gamma).
+    # - selector_kwargs.cond_dim is currently popped in pooling.py for v3,
+    #   so cond_dim remains NodeSelector default (None).
+    # -------------------------------------------------------------------------
+    selector_kwargs:
+      selection_mode: 'ste'
+      temperature: 1.0
+      temperature_schedule: 'cosine'
+      temperature_min: 0.05  # lowered from 0.3 (venomous-jellyfish-80 stalled at floor ~ep3000)
+      temperature_warmup_steps: 0
+      temperature_anneal_steps: 0
+      collect_sampling_probe: false

@@ -1,0 +1,17 @@
+# @package _global_
+# WRA medium low-density scenario: 200-link sparse networks (~12.5 pairs / km²)
+#
+# Full-power baseline guidance (run channel_analysis to update):
+#   mean_of_means ≈ 3.85,  global_10th_pct ≈ 0.80
+#   r_min = 1.0 bits/s/Hz is a reasonable constraint.
+
+defaults:
+  - /scenario/defaults
+  - _self_
+
+name: wra_medium_low_density
+
+dataset:
+  num_networks: 32
+  n_links: 200
+  deployment_range: 4000.0  # metres

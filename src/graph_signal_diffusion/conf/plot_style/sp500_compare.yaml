@@ -1,0 +1,127 @@
+# @package plot_style
+#
+# Centralized plot-style config for SP500 baseline comparison.
+#
+# This is the *single source of truth* for the matplotlib rcParams used
+# by `compare_baselines_sp500`.  Both `compare_baselines.py` and
+# `replot_baselines.py` apply this config at startup via
+# `evaluation/plot_style_apply.py:apply_global_plot_style`.
+#
+# Phase-1 design notes:
+# - Seaborn-darkgrid look is encoded *explicitly* via rcParams (no
+#   `seaborn.set_theme` call), so the helper has no seaborn dependency.
+# - Font sizes are intentionally moderate; the previous implicit defaults
+#   (22.5 pt labels via sp500/utils_graph.py) are not preserved.
+# - Anything plot-specific (per-axes tweaks, custom colors) lives inside
+#   the plot function itself, not here.
+
+global:
+  backend: Agg
+  default_dpi: 150
+  rc_params:
+    # ── Text / fonts ────────────────────────────────────────────────
+    # IEEE-style sans body font.  The list is tried in order: real
+    # Helvetica/Arial on a paper-build machine, else the metric-compatible
+    # clones bundled on Linux (Nimbus Sans ≈ Helvetica, Liberation Sans ≈
+    # Arial), with DejaVu Sans as the always-present matplotlib fallback.
+    text.usetex: false
+    font.family: sans-serif
+    font.sans-serif: [Helvetica, Arial, Nimbus Sans, TeX Gyre Heros, Liberation Sans, DejaVu Sans]
+    font.size: 10.0
+    axes.titlesize: 12.0
+    axes.labelsize: 11.0
+    xtick.labelsize: 9.0
+    ytick.labelsize: 9.0
+    legend.fontsize: 9.0
+    legend.title_fontsize: 10.0
+    mathtext.fontset: dejavusans   # sans math (γ_l, r², λ_k) to match the body
+
+    # ── Seaborn-darkgrid look (encoded explicitly) ─────────────────
+    figure.facecolor: white
+    axes.facecolor: "#EAEAF2"
+    axes.edgecolor: white
+    axes.linewidth: 0.0
+    axes.axisbelow: true
+    axes.grid: true
+    grid.color: white
+    grid.linestyle: "-"
+    grid.linewidth: 0.8
+    grid.alpha: 1.0
+
+    # ── Tick marks (hidden in darkgrid look) ───────────────────────
+    xtick.bottom: false
+    xtick.top: false
+    ytick.left: false
+    ytick.right: false
+    xtick.color: "0.15"
+    ytick.color: "0.15"
+    text.color: "0.15"
+    axes.labelcolor: "0.15"
+
+    # ── Legend frame ───────────────────────────────────────────────
+    legend.frameon: true
+    legend.fancybox: true
+    legend.framealpha: 0.85
+    legend.edgecolor: "0.85"
+
+    # ── Figure / save ──────────────────────────────────────────────
+    figure.dpi: 150
+    savefig.dpi: 150
+    savefig.bbox: tight
+    figure.constrained_layout.use: false
+
+# ── Per-baseline identity (colors + display names) ──────────────────
+# Consumed by the paper-figure plotters (resolve_paper_style merges these
+# with any explicit baseline_colors override).
+baseline:
+  display_aliases:
+    grw: GRW
+    diffusion: U-GNN
+    real: Real
+  colors:
+    real: steelblue
+    grw: darkgreen
+    diffusion: "#ff7f0e"
+
+# ── Per-figure aesthetics ───────────────────────────────────────────
+# Read inside each paper plot function via resolve_paper_style, so a figure
+# looks IDENTICAL whether drawn in a live compare-baselines run or regenerated
+# from sidecars by replot.  Behavioral knobs (which baseline, n_stocks, lags,
+# normalize, etc.) live in conf/compare_baselines_sp500.yaml:paper_figures.*.
+plots:
+  stock_prices:            # Fig 1 — per-window forecast columns
+    panel_width: 3.6       # inches (+50% over square; trajectories read better wide)
+    panel_aspect: 2.0      # per-panel width/height (2.0 = wide landscape; height ~1.8")
+    dpi: 300
+    colors:
+      historical: black
+      target: tab:blue
+      predicted: tab:orange
+      ensemble: tab:orange
+      ci: tab:orange
+    ci_alpha: 0.2
+    ensemble_alpha: 0.2
+    grid_alpha: 0.3
+    fonts: {title: 8.0, label: 7.0, legend: 5.5, tick: 6.0}
+  # Fig 2 and Fig 3 share a common PANEL geometry + fonts so their panels can be
+  # tiled together in a paper figure wrapper: both are 2 equal-width columns at
+  # the 7.16" IEEE textwidth (-> ~3.58"/panel) with a 3.3" per-panel height and
+  # identical font sizes.  (Fig 2 = 1 row of 2; Fig 3 = n_scorers rows of 2.)
+  structural_comparison:   # Fig 2 — combined ACF + eigenvalue comparison
+    figure_size: [7.16, 3.3]   # 2 equal cols x 3.3" -> ~3.58 x 3.3 per panel
+    dpi: 300
+    real_color: steelblue
+    fonts: {title: 10.0, label: 9.0, legend: 6.5, tick: 8.0}
+  nll_comparison:          # Fig 3 — dual-scorer NLL (rows x {hist, CDF})
+    fig_width: 7.16
+    row_height: 3.3          # match Fig 2 per-panel height
+    width_ratios: [1, 1]     # equal columns so each panel ~3.58 wide (= Fig 2)
+    dpi: 300
+    real_color: steelblue
+    fill_colors: [mediumpurple, lightcoral, khaki, palegreen, lightsalmon, lightskyblue]
+    fonts: {title: 10.0, label: 9.0, legend: 6.5, tick: 8.0}  # match Fig 2
+    # A baseline scored under *itself* collapses to a tall, narrow density peak
+    # that squashes the others; cap each histogram's y-top at the tallest
+    # non-self distribution x headroom (set clip flag false to disable).
+    density_clip_self_scored: true
+    density_ylim_headroom: 1.25

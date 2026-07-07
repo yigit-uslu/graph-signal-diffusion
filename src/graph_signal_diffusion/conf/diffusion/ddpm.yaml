@@ -1,0 +1,21 @@
+# @package diffusion
+name: ddpm
+_target_: graph_signal_diffusion.diffusion.ddpm.DDPM
+
+# Noise schedule
+num_timesteps: 500 # 1000
+beta_schedule: linear  # or 'cosine'
+beta_start: 0.0001
+beta_end: 0.02
+
+# Loss
+loss_type: l2  # or 'l1', 'huber'
+parameterization: eps  # or 'x0', 'v'
+
+# Sampling
+clip_denoised: false
+
+# RevIN (Reversible Instance Normalization) — opt-in
+revin: false
+revin_eps: 1.0e-5
+revin_cond_feature_idx: 4  # fallback index (SP500 DailyLogReturn=4); dataset metadata preferred

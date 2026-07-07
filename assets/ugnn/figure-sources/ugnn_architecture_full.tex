@@ -1,0 +1,31 @@
+% =====================================================================
+%  U-GNN denoiser architecture  (reference: oarfish-9)  --  STANDALONE WRAPPER
+%
+%  This file is now a THIN WRAPPER, used only for local 2-page preview.
+%  The actual drawing code lives in three sibling files:
+%      _ugnn_preamble.tex  -- shared colours, glyph macros, caption toggle
+%      ugnn_fig1.tex       -- Fig 1 (high-level encoder-decoder U)
+%      ugnn_fig2.tex       -- Fig 2 (block-interface inset)
+%  To EMBED the figures in a paper, \input the preamble + each body file
+%  directly into your main.tex (see the header of _ugnn_preamble.tex for the
+%  exact snippet); do NOT \input this wrapper.
+%
+%  Notation (single GNN symbol phi; conditioning fused by Pi_b before phi):
+%    encoder    Z_b   = Phi^E_b ( P_b , S ; Theta^enc_b , D_b )
+%    decoder    Y_b   = Phi^D_b ( P_b , S ; Theta^dec_b , D_b )
+%    bottleneck Y_{B+1}= Phi^B  ( C_{B+1} Z_B , S ; Theta^bn , D_{B+1} )
+%    block fuse P_b   = Pi_b ( V_b , D_b [U_0;K_0] )
+%    selection (depth-b selector)  v_b = Psi_b ( Z_b , D_b[U_0;K_0] ) ; C_{b+1} = TopK(v_b)
+%
+%  Compile (with captions):  pdflatex ugnn_architecture_full.tex
+%  Compile (no captions):    pdflatex "\def\nocaption{}\input{ugnn_architecture_full}"
+% =====================================================================
+\documentclass[tikz,border=12pt,class=extarticle,17pt]{standalone}   % extarticle 17pt base: bigger global fonts
+\usepackage{amsmath}
+\input{_ugnn_preamble}
+
+\begin{document}
+\input{ugnn_fig1}
+\newpage
+\input{ugnn_fig2}
+\end{document}

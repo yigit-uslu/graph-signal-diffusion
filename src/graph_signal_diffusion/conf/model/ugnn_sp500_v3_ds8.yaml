@@ -1,0 +1,144 @@
+# @package model
+defaults:
+  - ugnn_sp500_v3_ds4
+  - _self_
+
+# UGNN with learned 4-level [1,2,2,2] downsampling — 8x bottleneck compression
+# for stock price forecasting on SP500-cleaned.
+#
+# Diverges from ugnn_sp500_v3_ds4 along three axes:
+#   1. Pooling depth: 4 encoder levels (vs 3) with gamma=[1,2,2,2].
+#      First level stays at full resolution; subsequent three each pool by 2x.
+#      Node counts (SP500-cleaned, N=468):
+#        L0 (γ=1): GNN@468, no pool
+#        L1 (γ=2): GNN@468, pool -> 234
+#        L2 (γ=2): GNN@234, pool -> 117
+#        L3 (γ=2): GNN@117, pool -> 58
+#        Bottleneck: 2-layer GNN@58 (~12% of graph, 8x compression).
+#
+#   2. GNN convolution stride is capped at 2 (max_gnn_stride=2). Without the
+#      cap, the bottleneck StridedTAGConv γ would inherit stride_pre=8 and
+#      compute A^16 on the 58-node coarsened graph — essentially full-graph
+#      mixing, strong over-smoothing pressure by construction. With the cap,
+#      effective polynomial reach is ≤A^4 regardless of depth.
+#
+#   3. Temporal-mixer schedule is per_layer (not per_block) with self-attention
+#      enabled. Each GNN layer is paired 1:1 with a temporal mixer combining
+#      depthwise k=3 conv + pointwise + self-attention (heads=2, max_T=5).
+#      Dilations [1,1] give RF=5 covering the full T=5 forecast window.
+#
+# Other architectural diffs vs ds4:
+#   - channel_multipliers: [1,1,1,1] (4 uniform levels) vs ds4's [1,1,1].
+#   - num_bottleneck_layers: 2 (matching encoder gnn_config.num_layers=2)
+#     vs ds4's 3.
+#   - dropout: 0.10 (vs ds4's 0.05). Higher dropout was the gray-galago /
+#     outstanding-fox-517 finding that widened the predictive distribution
+#     and lifted Cov@90.
+#   - Cond encoder: wider (4 layers × 128ch vs ds4's 2 layers × 64ch),
+#     time_varying.method=none (no projection), block_fusion mode flipped
+#     to cross_attention with heads=2.
+#
+# Control: outstanding-fox-517 (same arch + dropout + tracker; gamma=[1,1,1,1]
+# fixed-stride, num_bottleneck_layers=1, selection_method=stride).
+name: ugnn_sp500_v3_ds8
+
+config:
+  # 4 encoder levels (one more than ds4's 3).
+  channel_multipliers: [1, 1, 1, 1]
+
+  gnn_config:
+    dropout: 0.1
+    # Cap StridedTAGConv γ at 2 — see header for the A^16-on-58-node motivation.
+    max_gnn_stride: 2
+
+    # Per-layer temporal mixer with self-attention (T=5 future window).
+    # Each GNN layer is paired with one temporal mixer; with dilations=[1,1]
+    # and kernel=3, RF_total = 1 + (3-1)*1 + (3-1)*1 = 5, covering T=5.
+    temporal_mixer:
+      enabled: true
+      schedule: per_layer
+      kernel_size: 3
+      dilations: [1, 1]
+      use_pointwise: true
+      causal: false
+      attention:
+        enabled: true
+        num_heads: 2
+        dropout: 0.1
+        max_timesteps: 5
+
+  pooling_config:
+    # 4-level architecture: gamma=[1,2,2,2]. See header for node counts.
+    gamma: [1, 2, 2, 2]
+    # selection_method, selector_skip_gamma1_levels,
+    # selector_packed_score_mode, entropy_reg_weight=0.0 all inherited from
+    # ds4 (which inherits from ugnn_sp500_v3 → ugnn_sp500_v2 → ugnn).
+
+    # ── selector_kwargs inheritance note ──────────────────────────────────
+    # The inherited selector_kwargs block from ugnn_sp500_v3_ds4.yaml
+    # contains two fields that are INACTIVE under the v3 NodeSelector path
+    # we use here:
+    #
+    #   use_pooling_gnn: false   ← NO-OP under v3 (selector_version='v3')
+    #   hidden_channels: 32      ← NO-OP under v3
+    #
+    # In pooling.py:2217-2227, StridedGraphMaxPool explicitly pops these
+    # (along with use_strided_pooling_gnn, num_gnn_layers, temporal_score_agg,
+    # ema_alpha_init, hidden_norm_type, score_gain_init, learnable_score_gain)
+    # BEFORE instantiating NodeSelector. They're legacy knobs from the older
+    # LearnableGraphPool selector implementation, kept in the ds4 yaml for
+    # backward-compatibility with any code paths that might still consult
+    # them, but the v3 NodeSelector (node_selector.py:30) has a fixed
+    # scoring architecture and does not accept these arguments at all.
+    #
+    # If you want to actually change the selector's internal scoring
+    # network, that requires editing NodeSelector itself — there is no
+    # config knob for it under v3.
+    #
+    # Fields below this comment DO reach NodeSelector and DO affect runtime.
+    # ────────────────────────────────────────────────────────────────────
+
+    # Override selector_kwargs.temperature_min to 0.50 (vs ds4's 0.20).
+    # Matches the value sophisticated-oarfish-9 ran on WRA (raw wra_ds4 yaml
+    # default is 0.05; the launcher overrode to 0.50). 0.50 is a softer
+    # selection floor — even at T_min the soft mask stays meaningfully
+    # graded rather than collapsing to hard 0/1, which gives the diffusion
+    # loss more stable gradient signal through the selector. Other
+    # *active* selector_kwargs fields (selection_mode='ste', temperature=1.0,
+    # temperature_schedule='linear', etc.) are still inherited from ds4.
+    selector_kwargs:
+      temperature_min: 0.50
+
+  # 2-layer bottleneck (matching encoder gnn_config.num_layers=2).
+  # ds4 used 3 layers; we trim by 1 because the 58-node bottleneck is small
+  # enough that over-smoothing from extra mixing is a real risk.
+  num_bottleneck_layers: 2
+
+  embedding_config:
+    cond:
+      shared_encoder:
+        temporal:
+          # Wider, deeper conditioning encoder.
+          hidden_channels: [128, 128, 128, 128]
+          num_layers: 4
+          mixer:
+            causal: false
+            dilations: [1, 2, 4, 8]
+          # output.mode + output.time_varying.method are inherited from
+          # sp500_v3 (mode='time_varying', method='learned_projection' from
+          # past_window=20 → future_window=5). The learned projection is
+          # REQUIRED here because selection_method='learned' invokes the
+          # selector's cond fusion path, which strictly requires cond's
+          # temporal dim to match x's (T=future_window=5). Outstanding-fox-517
+          # overrode this to method='none' which works under selection_method=
+          # stride (selector inactive) but raises at node_selector.py:354 under
+          # learned selection. See the charming-nuthatch-603 first-attempt
+          # error trace 2026-05-18.
+      block_fusion:
+        # Cross-attention conditioning fusion (vs ds4's inherited concat).
+        mode: cross_attention
+        cross_attention:
+          heads: 2
+          dropout: 0.1
+          bias: true
+          causal: false

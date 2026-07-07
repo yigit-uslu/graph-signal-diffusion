@@ -1,0 +1,18 @@
+# @package task
+defaults:
+  - /dataset: sp500_cleaned
+  - /model: ugnn_sp500_v3_ds4
+  - /diffusion: ddim
+  - /trainer: trainer_sp500_v3_learned_ds4
+  - _self_
+
+# Stock price forecasting v3: ARM K-equivalent architecture with learned
+# 3-level [1,2,2] downsampling, 3-layer bottleneck, and linear temperature
+# anneal on SP500-cleaned data.
+name: stock_price_forecasting_v3
+_target_: graph_signal_diffusion.tasks.stock_price_forecasting.evaluator.StockPriceForecastingTaskV2
+forecast_horizon: ${dataset.future_window}
+n_samples_per_input: ${oc.select:trainer.n_samples_per_input, 10}
+
+# Valid datasets for this task
+valid_datasets: [sp500, sp500_cleaned, sp100]
