@@ -4,7 +4,7 @@ This repository contains the implementation code for the paper
 
 > Y. B. Uslu, S. Hadou, S. Rozada, S. Saeedi Bidokhti, and A. Ribeiro, "Generative Diffusion Models of
 > Stochastic Graph Signals," under review at *IEEE Transactions on Signal Processing*.
-> [[arXiv](https://arxiv.org/abs/2607.xxxxx)]
+> [[arXiv](https://arxiv.org/abs/2607.06833)]
 
 A PyTorch framework for **conditional generative diffusion modeling of graph signals**. Many graph
 machine learning tasks — financial forecasting, wireless network optimization, recommender systems —
@@ -57,8 +57,8 @@ of returns.
 *Ensemble forecasts (orange: sampled trajectories and their mean, with 90% CI) vs. realized target
 (blue) over the 5-day horizon, across nine held-out test windows.*
 
-→ Structural, distributional, and calibration comparisons vs. GRW are in the **[paper](#)** — meanwhile
-see the **[details page](assets/sp500-sociable-frigatebird-619/README.md)** and
+→ Structural, distributional, and calibration comparisons vs. GRW are in the **[paper](https://arxiv.org/abs/2607.06833)**;
+see also the **[details page](assets/sp500-sociable-frigatebird-619/README.md)** and
 [reproduce end-to-end](reproduce/sp500-sociable-frigatebird-619/).
 
 <!-- Fig. 2 / Fig. 3 material — commented out to keep the README short; still shown on
@@ -88,7 +88,7 @@ allocation satisfies f<sub>min</sub> for only 56–86% of links, but time-sharin
 ensemble (rightmost panels) lifts every link above f<sub>min</sub> — 100% feasible.*
 
 → The "network as a graph signal" anatomy and per-density comparisons vs. the expert are on the
-**[details page](assets/wra-rigorous-quoll/README.md)** and in the **[paper](#)**;
+**[details page](assets/wra-rigorous-quoll/README.md)** and in the **[paper](https://arxiv.org/abs/2607.06833)**;
 [reproduce end-to-end](reproduce/wra-rigorous-quoll/).
 
 <!-- Additional figures kept on the details page to keep the README short: network anatomy
@@ -119,12 +119,14 @@ Full setup, configuration, training, and testing → **[docs/USAGE.md](docs/USAG
 Please use the following BibTeX entry to cite this work:
 
 ```bibtex
-@article{uslu2026generative,
-  title   = {Generative Diffusion Models of Stochastic Graph Signals},
-  author  = {Uslu, Yi\u{g}it Berkay and Hadou, Samar and Rozada, Sergio and Saeedi Bidokhti, Shirin and Ribeiro, Alejandro},
-  journal = {arXiv preprint arXiv:2607.xxxxx},
-  year    = {2026},
-  url     = {https://arxiv.org/abs/2607.xxxxx}
+@misc{uslu2026generative,
+  title         = {Generative Diffusion Models of Stochastic Graph Signals},
+  author        = {Uslu, Yi\u{g}it Berkay and Hadou, Samar and Rozada, Sergio and Saeedi Bidokhti, Shirin and Ribeiro, Alejandro},
+  year          = {2026},
+  eprint        = {2607.06833},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2607.06833}
 }
 ```
 
